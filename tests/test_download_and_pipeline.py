@@ -1,5 +1,6 @@
 import contextlib
 import io
+import importlib.util
 import json
 import tempfile
 import threading
@@ -155,6 +156,7 @@ class DownloadTests(unittest.TestCase):
             selected, report = curate_with_llm(args, "AI security", [{"title": "New jailbreak", "year": 2026}])
         self.assertEqual(selected[0]["title"], "New jailbreak")
 
+    @unittest.skipUnless(importlib.util.find_spec("scrapy"), "Optional conference bridge requires requirements-security.txt")
     def test_conference_bridge_combines_separate_spider_feeds(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

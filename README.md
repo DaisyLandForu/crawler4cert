@@ -131,7 +131,7 @@ python scripts/security_pipeline.py --with-papercrawler --papercrawler-path "E:/
 python -m unittest discover -s tests -p "test_*.py"
 ```
 
-保留检索分页与时间过滤、分类去重、公开 PDF 下载及复用、会议桥接、工作台/API 等回归测试。测试主要使用本地服务和模拟响应，不代表外部站点的实时覆盖率。
+保留检索分页与时间过滤、分类去重、公开 PDF 下载及复用、会议桥接、工作台/API 等回归测试。未安装可选 Scrapy 依赖时，会跳过会议桥接集成测试。测试主要使用本地服务和模拟响应，不代表外部站点的实时覆盖率。
 
 审核入口：`search.py`（数据源查询）、`topics.py` 和方向配置（分类）、`open_access.py`（全文解析）、`workbench.py`（论文库与任务）、`web.py` 和 `web_assets/`（页面/API）。优先审核分类误报、论文身份匹配、来源字段缺失、限流重试与任务恢复。
 
