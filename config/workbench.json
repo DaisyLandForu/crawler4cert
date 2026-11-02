@@ -1,0 +1,11 @@
+{
+  "max_results": 100,
+  "per_query": 30,
+  "query_limit": 2,
+  "page_size": 50,
+  "timeout": 30,
+  "retries": 1,
+  "delay": 3,
+  "sources": ["openalex", "crossref", "arxiv"],
+  "download_dir": "downloads/security_research"
+}

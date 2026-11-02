@@ -1,0 +1,73 @@
+{
+  "topics": {
+    "satellite_security": {
+      "label": "卫星互联网安全",
+      "queries": [
+        "satellite internet security",
+        "satellite network attack",
+        "satellite communication authentication",
+        "LEO constellation security",
+        "Starlink security",
+        "non terrestrial network security",
+        "satellite jamming spoofing"
+      ],
+      "required_groups": [
+        ["satellite*", "satcom", "starlink", "non terrestrial", "ntn", "leo constellation*", "space internet"],
+        ["network*", "communication*", "internet", "constellation*", "satcom", "starlink", "non terrestrial", "ntn"],
+        ["secur*", "attack*", "vulnerab*", "privac*", "authenticat*", "jamm*", "spoof*", "intrusion*", "eavesdrop*", "denial of service", "malicious", "threat*"]
+      ]
+    },
+    "vulnerability_detection": {
+      "label": "漏洞检测",
+      "queries": [
+        "software vulnerability detection",
+        "firmware vulnerability discovery",
+        "binary vulnerability analysis",
+        "smart contract vulnerability detection",
+        "coverage guided fuzzing",
+        "large language model vulnerability detection",
+        "automated exploit generation"
+      ],
+      "required_groups": [
+        ["vulnerability", "vulnerabilities", "fuzzing", "fuzzer*", "bug*", "exploit generation", "exploit detection", "exploitability", "memory safety", "buffer overflow", "use after free"],
+        ["software", "program*", "source code", "code", "firmware", "binary code", "binary analysis", "binaries", "smart contract*", "kernel*", "compiler*", "cve*", "cwe*", "fuzzing", "fuzzer*", "memory safety", "buffer overflow", "use after free", "neural model*", "language model*"],
+        ["detect*", "discover*", "analy*", "fuzzing", "fuzzer*", "mining", "identif*", "prediction", "generation", "finding", "assessment", "benchmark*"]
+      ]
+    },
+    "encrypted_traffic": {
+      "label": "加密流量分析检测",
+      "queries": [
+        "encrypted traffic classification",
+        "encrypted traffic analysis",
+        "encrypted malicious traffic detection",
+        "TLS traffic fingerprinting",
+        "QUIC traffic classification",
+        "website fingerprinting",
+        "VPN traffic identification"
+      ],
+      "required_groups": [
+        ["encrypt*", "tls", "quic", "https", "vpn", "tor", "website fingerprint*"],
+        ["traffic", "packet*", "flow*", "website fingerprint*"],
+        ["classif*", "analy*", "detect*", "fingerprint*", "identif*", "recognition", "infer*", "profil*"],
+        ["encrypted traffic", "traffic classification", "traffic analysis", "traffic detection", "traffic identification", "traffic fingerprint*", "website fingerprint*", "flow classification", "network traffic", "packet classification", "tls traffic", "quic traffic", "vpn traffic"]
+      ]
+    },
+    "ai_security": {
+      "label": "人工智能安全",
+      "queries": [
+        "large language model jailbreak",
+        "prompt injection defense",
+        "machine learning backdoor attack",
+        "training data poisoning",
+        "adversarial example defense",
+        "membership inference attack",
+        "model extraction attack",
+        "large language model safety alignment"
+      ],
+      "required_groups": [
+        ["artificial intelligence", "machine learning", "deep learning", "neural network*", "neural model*", "language model*", "llm*", "foundation model*", "diffusion model*", "generative model*", "prompt injection", "adversarial example*", "membership inference", "model extraction", "model stealing"],
+        ["secur*", "backdoor*", "data poisoning", "poisoning attack*", "jailbreak*", "prompt injection", "adversarial example*", "adversarial attack*", "adversarial robustness", "membership inference", "model inversion", "model extraction", "model stealing", "ai safety", "llm safety", "model safety", "language model safety", "artificial intelligence safety", "safety alignment", "privac*", "unlearning"]
+      ]
+    }
+  }
+}

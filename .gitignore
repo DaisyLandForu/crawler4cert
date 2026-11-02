@@ -1,0 +1,40 @@
+# Local secrets, cookies, sessions and generated data
+.env
+.env.*
+!.env.example
+config/cookies/
+config/browser-state/
+config/browser-profile/
+config/library_proxies*.json
+outputs/
+downloads/
+data/
+*.pdf
+*.sqlite
+*.sqlite3
+*.db
+
+# Python and local tools
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.vscode/
+.idea/
+
+# Browser caches, logs and temporary files
+.playwright-browsers/
+playwright-report/
+test-results/
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db

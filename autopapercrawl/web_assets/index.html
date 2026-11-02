@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AutoPaperCrawl · 论文工作台</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<header><div class="brand"><span class="brand-mark">P</span><div><strong>AutoPaperCrawl</strong><small>论文工作台</small></div></div><div class="header-note"><span class="dot"></span>本地运行 · 文件保存在你的电脑</div><button id="sync" class="quiet">同步已有采集结果</button></header>
+<div class="workspace">
+<aside>
+  <div class="section-heading"><span class="eyebrow">DISCOVER</span><h1>找到值得阅读的论文</h1><p>设定条件，检索、筛选，再下载。</p></div>
+  <form id="search-form">
+    <div class="field"><label>发表年份</label><div class="year-row"><input id="start-year" type="number" min="1991" aria-label="开始年份" required><span>至</span><input id="end-year" type="number" min="1991" aria-label="结束年份" required></div></div>
+    <div class="field"><div class="label-row"><label>研究方向</label><div><button id="topics-all" type="button" class="text-button">全选</button><button id="topics-none" type="button" class="text-button">清空</button></div></div><div id="topics" class="choice-list"></div><small>多选取并集；清空后可检索其他研究主题。</small></div>
+    <div class="field"><label for="venues">会议 / 期刊</label><select id="venues" multiple size="5" aria-label="会议期刊多选"></select><small>按住 Ctrl 多选；未选择表示不限制。</small><input id="custom-venue" placeholder="其他会议或期刊名称；多个用分号分隔" aria-label="其他会议期刊"><small>未记录出处的论文不纳入会议期刊筛选。</small></div>
+    <div class="field"><label for="title">标题包含</label><input id="title" placeholder="例如 NetCoFi、website fingerprinting"></div>
+    <div class="field"><label for="query">研究关键词</label><input id="query" placeholder="可选，例如 encrypted traffic"></div>
+    <details class="advanced"><summary>检索选项</summary><div class="field"><label for="max-results">最多保留论文数</label><input id="max-results" type="number" min="1" max="5000"></div><div class="field"><label for="query-limit">每个方向使用的检索词</label><select id="query-limit"><option value="1">1 组 · 快速</option><option value="2">2 组 · 常用</option><option value="0">全部 · 更广泛</option></select></div><div class="field"><label>数据来源</label><div id="sources" class="choice-list compact"></div></div><small>默认近三年、最新优先。来源覆盖与全文权限会影响结果。</small></details>
+    <div class="form-actions"><button id="search" type="submit" class="primary full">联网查询论文 <span>↗</span></button><button id="filter" type="button" class="secondary full">仅筛选本地论文库</button></div>
+  </form>
+</aside>
+<main>
+  <div class="main-heading"><div><span class="eyebrow">YOUR RESEARCH LIBRARY</span><h2>论文与下载</h2></div><div class="view-tabs"><button id="library-view" class="active">本地论文库</button><button id="search-view" disabled>本次检索</button></div></div>
+  <section class="stats" aria-label="当前结果统计"><div><small>当前结果</small><strong id="count-total">—</strong><span>篇论文</span></div><div><small>已下载</small><strong id="count-success">—</strong><span>可打开 PDF</span></div><div><small>尚未成功获取</small><strong id="count-other">—</strong><span>可选择重试</span></div></section>
+  <section id="job-panel" class="job-panel" hidden><div class="job-heading"><strong id="job-title">任务进度</strong><span id="job-state"></span><button id="cancel-job" class="text-button">停止任务</button></div><p id="job-message"></p><p id="job-warning" hidden></p><progress id="job-progress" max="1" value="0"></progress><div class="job-bottom"><small id="job-count"></small><button id="job-results" class="text-button">查看本次结果</button><button id="job-details" class="text-button">任务详情</button></div></section>
+  <section class="download-box"><div><label for="download-dir">PDF 保存位置</label><div class="path-row"><input id="download-dir" spellcheck="false" placeholder="填写完整文件夹路径"><button id="choose-dir" class="secondary">选择文件夹</button></div><small>自动建立 PDF 和方向子目录，已下载文件会复用。</small></div></section>
+  <section class="results-panel">
+    <div class="toolbar"><div class="selection-actions"><button id="select-all" class="text-button">全选筛选结果</button><button id="clear-selection" class="text-button">清空</button><span id="selection-count">已选 0 篇</span></div><div class="download-actions"><button id="retry" class="secondary">重试未成功项</button><button id="download" class="primary" disabled>下载所选论文</button></div></div>
+    <div class="list-controls"><div><strong id="scope-label">本地论文库</strong><small>按发表时间排序</small></div><div><select id="status" aria-label="下载状态筛选"><option value="">所有下载状态</option><option value="success">已下载</option><option value="pending">未下载</option><option value="no_fulltext">未找到公开全文</option><option value="request_failed">请求失败</option><option value="invalid_pdf">文件无效</option></select><button id="export-csv" class="quiet">导出 CSV</button><button id="export-html" class="quiet">导出阅读报告</button></div></div>
+    <div class="table-scroll"><table><thead><tr><th class="check"><input id="page-all" type="checkbox" aria-label="选择当前页全部论文"></th><th>论文</th><th class="year-cell">年份 / 出处</th><th class="status-cell">下载结果</th><th class="action-cell">文件</th></tr></thead><tbody id="papers"></tbody></table></div>
+    <div id="empty" class="empty" hidden><div>⌕</div><h3>暂无符合条件的论文</h3><p>可放宽筛选条件，或点击左侧“联网查询论文”。</p></div>
+    <footer class="pagination"><span id="page-info">正在载入论文库…</span><div><button id="previous" class="secondary" disabled>上一页</button><button id="next" class="secondary" disabled>下一页</button></div></footer>
+  </section>
+  <p class="footnote">“未找到公开全文”不代表论文没有全文。请求失败的详情和每次尝试，可在论文详情中查看。</p>
+</main>
+</div>
+<dialog id="detail"><div class="dialog-top"><strong id="detail-label">论文详情</strong><button id="close-detail" class="quiet" aria-label="关闭详情">关闭 ×</button></div><div id="detail-content"></div></dialog>
+<div id="toast" role="status" hidden></div>
+</body></html>

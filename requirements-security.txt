@@ -1,0 +1,2 @@
+# Optional: only needed for the external paperCrawler conference bridge.
+scrapy>=2.11,<3
