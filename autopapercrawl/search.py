@@ -35,6 +35,8 @@ def search_all(
     truncate_results: bool = True,
     venue: str | None = None,
     title_filter: str | None = None,
+    registry=None,
+    from_date=None,
 ) -> list[Paper]:
     if max_results < 1 or page_size < 1:
         raise ValueError("max_results and page_size must be positive")
@@ -44,50 +46,43 @@ def search_all(
     per_source = max(1, max_results)
     papers: list[Paper] = []
 
-    extra = {"venue": venue, "title_filter": title_filter} if venue or title_filter else {}
-    source_calls = {
-        "openalex": lambda source_client: search_openalex(query, per_source, start_year, end_year, source_client, email, page_size, sort_by, **extra),
-        "crossref": lambda source_client: search_crossref(query, per_source, start_year, end_year, source_client, email, page_size, sort_by, **extra),
-        "arxiv": lambda source_client: search_arxiv(query, per_source, start_year, end_year, source_client, page_size, sort_by, title_filter=title_filter),
-    }
-    selected_calls = []
+    from .adapters import ADAPTERS
+    from .adapters.base import UnsupportedCapability
+    from .registry import Registry
+    registry = registry or Registry()
+    filters = {"max_results": per_source, "start_year": start_year, "end_year": end_year, "email": email,
+               "page_size": page_size, "sort_by": sort_by, "venue": venue, "title_filter": title_filter,
+               "venue_record": registry.venue(venue) if venue else None, "from_date": from_date}
     for source in selected:
-        call = source_calls.get(source)
-        if call is None:
+        if source not in ADAPTERS:
             raise ValueError(f"Unknown metadata source: {source}")
-        selected_calls.append((source, call))
 
-    def record(source, result=None, error=None):
+    def call(source):
+        source_client = clone_client(client)
+        diagnostic = {"source": source, "query": query, "venue": venue, "count": 0}
+        try:
+            result = ADAPTERS[source](source_client, registry).search(query, filters)
+            diagnostic.update(status="ok" if result else "empty", count=len(result), error=None)
+        except Exception as exc:
+            result = []
+            diagnostic.update(status="unsupported" if isinstance(exc, UnsupportedCapability) else "request_failed", error=str(exc))
+            print(f"warning: {source} search failed: {exc}", file=sys.stderr)
+        diagnostic.update(requests=getattr(source_client, "request_count", 0), successful_requests=getattr(source_client, "success_count", 0),
+                          failed_requests=getattr(source_client, "failure_count", 0))
         if diagnostics is not None:
-            diagnostics.append({"source": source, "query": query, "status": "request_failed" if error else ("ok" if result else "empty"), "count": len(result or []), "error": str(error) if error else None})
-
-    if source_workers <= 1 or len(selected_calls) <= 1:
-        for source, call in selected_calls:
-            try:
-                result = call(clone_client(client))
-                papers.extend(result)
-                record(source, result)
-            except Exception as exc:
-                print(f"warning: {source} search failed: {exc}", file=sys.stderr)
-                record(source, error=exc)
+            diagnostics.append(diagnostic)
+        return result
+    if source_workers <= 1 or len(selected) <= 1:
+        for source in selected:
+            papers.extend(call(source))
     else:
-        with ThreadPoolExecutor(max_workers=min(source_workers, len(selected_calls))) as executor:
-            futures = {
-                executor.submit(call, clone_client(client)): source
-                for source, call in selected_calls
-            }
-            for future in as_completed(futures):
-                source = futures[future]
-                try:
-                    result = future.result()
-                    papers.extend(result)
-                    record(source, result)
-                except Exception as exc:
-                    print(f"warning: {source} search failed: {exc}", file=sys.stderr)
-                    record(source, error=exc)
+        with ThreadPoolExecutor(max_workers=min(source_workers, len(selected))) as executor:
+            for result in executor.map(call, selected):
+                papers.extend(result)
 
-    combined = deduplicate(papers, sort_by=sort_by)
-    return combined[:max_results] if truncate_results else combined
+    if not truncate_results:
+        return sort_papers(papers, sort_by)
+    return deduplicate(papers, sort_by=sort_by)[:max_results]
 
 
 def search_openalex(
@@ -101,52 +96,10 @@ def search_openalex(
     sort_by: str = "newest",
     venue: str | None = None,
     title_filter: str | None = None,
+    from_date: str | None = None,
 ) -> list[Paper]:
-    filters = []
-    if start_year:
-        filters.append(f"from_publication_date:{start_year}-01-01")
-    if end_year:
-        filters.append(f"to_publication_date:{publication_cutoff(end_year)}")
-    if venue:
-        name = canonical(venue)
-        if name not in SOURCE_IDS:
-            results = client.get_json("https://api.openalex.org/sources?" + urlencode({"search": name, "per-page": 25})).get("results", [])
-            matched = next((source for source in results if venue_matches(source.get("display_name") or "", venue)), None)
-            if not matched:
-                raise ValueError(f"OpenAlex 未找到该会议/期刊的来源标识：{name}")
-            SOURCE_IDS[name] = matched["id"].rsplit("/", 1)[-1]
-        filters.append("primary_location.source.id:" + SOURCE_IDS[name])
-    if title_filter:
-        # Punctuation has special meaning in OpenAlex filter values.
-        filters.append("title.search:" + re.sub(r"[^\w\s-]", " ", title_filter).strip())
-
-    papers: list[Paper] = []
-    page = 1
-    batch_size = min(page_size, max_results, 200)
-    while len(papers) < max_results:
-        params = {
-            "search": query,
-            "per-page": batch_size,
-            "page": page,
-            "filter": ",".join(filters) if filters else None,
-            "mailto": email,
-            "sort": {"newest": "publication_date:desc", "citations": "cited_by_count:desc"}.get(sort_by),
-        }
-        print(
-            f"[openalex] page={page} per_page={params['per-page']} collected={len(papers)}/{max_results}",
-            file=sys.stderr,
-        )
-        data = client.get_json("https://api.openalex.org/works?" + urlencode(params))
-        results = data.get("results", [])
-        if not results:
-            break
-        for item in results:
-            if item.get("title") and in_year_range(item.get("publication_year"), start_year, end_year):
-                papers.append(paper_from_openalex(item))
-        page += 1
-        if len(results) < batch_size:
-            break
-    return papers[:max_results]
+    from .adapters.openalex import _search
+    return _search(**locals_for_search(locals()))
 
 
 def search_crossref(
@@ -160,61 +113,10 @@ def search_crossref(
     sort_by: str = "newest",
     venue: str | None = None,
     title_filter: str | None = None,
+    from_date: str | None = None,
 ) -> list[Paper]:
-    filters = []
-    if start_year:
-        filters.append(f"from-pub-date:{start_year}-01-01")
-    if end_year:
-        filters.append(f"until-pub-date:{publication_cutoff(end_year)}")
-    issn = None
-    if venue:
-        name = canonical(venue)
-        if name not in CROSSREF_ISSNS and not is_conference(venue):
-            try:
-                journals = client.get_json("https://api.crossref.org/journals?" + urlencode({"query": name, "rows": 20})).get("message", {}).get("items", [])
-                matched = next((journal for journal in journals if venue_matches(str(journal.get("title") or ""), venue)), None)
-                CROSSREF_ISSNS[name] = first(matched.get("ISSN")) if matched else None
-            except Exception as exc:
-                print(f"warning: Crossref journal lookup failed: {exc}", file=sys.stderr)
-        issn = CROSSREF_ISSNS.get(name)
-        if issn:
-            filters.append("issn:" + issn)
-
-    papers: list[Paper] = []
-    offset = 0
-    while len(papers) < max_results:
-        params = {
-            "query": query,
-            "query.container-title": canonical(venue) if venue else None,
-            "query.title": title_filter,
-            "rows": min(page_size, max_results - len(papers), 100),
-            "offset": offset,
-            "filter": ",".join(filters) if filters else None,
-            "mailto": email,
-            # Without an ISSN, container-title is a relevance query, not an
-            # exact filter. First recall matching proceedings; the merged pool
-            # is sorted by date after checking its actual container title.
-            "sort": "relevance" if venue and not issn else {"newest": "published", "citations": "is-referenced-by-count"}.get(sort_by),
-            "order": "desc" if sort_by != "relevance" else None,
-        }
-        print(
-            f"[crossref] offset={offset} rows={params['rows']} collected={len(papers)}/{max_results}",
-            file=sys.stderr,
-        )
-        data = client.get_json("https://api.crossref.org/works?" + urlencode(params))
-        items = data.get("message", {}).get("items", [])
-        if not items:
-            break
-        for item in items:
-            title = first(item.get("title")) or ""
-            if not title:
-                continue
-            year = extract_crossref_year(item)
-            if not in_year_range(year, start_year, end_year):
-                continue
-            papers.append(paper_from_crossref(item))
-        offset += len(items)
-    return papers[:max_results]
+    from .adapters.crossref import _search
+    return _search(**locals_for_search(locals()))
 
 
 def search_arxiv(
@@ -226,54 +128,12 @@ def search_arxiv(
     page_size: int = DEFAULT_PAGE_SIZE,
     sort_by: str = "newest",
     title_filter: str | None = None,
+    from_date: str | None = None,
 ) -> list[Paper]:
     # Keep explicit field/Boolean queries intact. Ordinary topic words must each
     # receive a field prefix; all:foo bar does not reliably mean all:foo AND all:bar.
-    if re.search(r"\b(?:all|ti|abs|au|cat|id|submittedDate|lastUpdatedDate):", query):
-        expression = query
-    else:
-        tokens = re.findall(r'"[^"]+"|\S+', query)
-        expression = " AND ".join(f"all:{token}" for token in tokens)
-    if title_filter:
-        title_expression = 'ti:"' + title_filter.replace('"', ' ') + '"'
-        expression = f"({expression}) AND {title_expression}" if expression and query != title_filter else title_expression
-    if start_year or end_year:
-        lower = f"{start_year or 1991}01010000"
-        upper = publication_cutoff(end_year or date.today().year).replace("-", "") + "2359"
-        dates = f"submittedDate:[{lower} TO {upper}]"
-        expression = f"({expression}) AND {dates}" if expression else dates
-    ns = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
-    client.delay_seconds = max(client.delay_seconds, 3.0)
-    papers: list[Paper] = []
-    seen: set[str] = set()
-    offset = 0
-    while len(papers) < max_results:
-        batch_size = min(max_results - len(papers), page_size, 100)
-        params = {"search_query": expression, "start": offset, "max_results": batch_size,
-                  "sortBy": "submittedDate" if sort_by == "newest" else "relevance", "sortOrder": "descending"}
-        print(f"[arxiv] start={offset} collected={len(papers)}/{max_results}", file=sys.stderr)
-        body = client.get_bytes("https://export.arxiv.org/api/query?" + urlencode(params), headers={"Accept": "application/atom+xml"})
-        root = ET.fromstring(body)
-        entries = root.findall("atom:entry", ns)
-        if not entries:
-            break
-        added_ids = 0
-        for entry in entries:
-            identifier = text(entry, "atom:id", ns)
-            if "api/errors" in identifier:
-                raise RuntimeError(text(entry, "atom:summary", ns))
-            if identifier in seen:
-                continue
-            seen.add(identifier)
-            added_ids += 1
-            paper = paper_from_arxiv_entry(entry, ns)
-            if in_year_range(paper.year, start_year, end_year):
-                papers.append(paper)
-        offset += len(entries)
-        total = root.findtext("{http://a9.com/-/spec/opensearch/1.1/}totalResults")
-        if not added_ids or (total and offset >= int(total)) or (not total and len(entries) < batch_size):
-            break
-    return papers
+    from .adapters.arxiv import _search
+    return _search(**locals_for_search(locals()))
 
 
 def in_year_range(year: int | None, start_year: int | None, end_year: int | None) -> bool:
@@ -391,34 +251,17 @@ def enrich_with_unpaywall(papers: list[Paper], client: HttpClient, email: str | 
 
 
 def deduplicate(papers: list[Paper], *, sort_by: str = "newest") -> list[Paper]:
-    seen: dict[str, Paper] = {}
-    titles: dict[str, str] = {}
-    doi_keys: dict[str, str] = {}
+    from .identity import same_identity, relate_versions
+    seen = []
     for paper in papers:
-        title = re.sub(r"[^\w]+", " ", paper.title.lower()).strip()
-        key = paper.key
-        doi_key = normalize_doi(paper.doi) if paper.doi else None
-        existing_key = doi_keys.get(doi_key) or (key if key in seen else titles.get(title))
-        existing = seen.get(existing_key) if existing_key else None
-        # Different DOIs with the same title can be distinct publications.
-        if existing and existing.doi and paper.doi and normalize_doi(existing.doi) != normalize_doi(paper.doi):
-            existing = None
-        if existing is None:
-            seen[key] = paper
-            if title:
-                titles[title] = key
-            if doi_key:
-                doi_keys[doi_key] = key
-            continue
-        if score_completeness(paper) > score_completeness(existing):
-            seen[existing_key] = merge_papers(paper, existing)
+        match = next((i for i, old in enumerate(seen) if same_identity(old, paper)), None)
+        if match is None:
+            seen.append(paper)
+        elif score_completeness(paper) > score_completeness(seen[match]):
+            seen[match] = merge_papers(paper, seen[match])
         else:
-            seen[existing_key] = merge_papers(existing, paper)
-        if title:
-            titles[title] = existing_key
-        if seen[existing_key].doi:
-            doi_keys[normalize_doi(seen[existing_key].doi)] = existing_key
-    return sort_papers(list(seen.values()), sort_by)
+            seen[match] = merge_papers(seen[match], paper)
+    return sort_papers(relate_versions(seen), sort_by)
 
 
 def sort_papers(papers: list[Paper], sort_by: str = "newest") -> list[Paper]:
@@ -430,19 +273,42 @@ def sort_papers(papers: list[Paper], sort_by: str = "newest") -> list[Paper]:
 
 
 def merge_papers(primary: Paper, secondary: Paper) -> Paper:
+    from .identity import version_snapshots
+    versions = version_snapshots(primary, secondary)
     pdf_urls = list(dict.fromkeys(url for p in (primary, secondary) for url in [p.pdf_url, *p.metadata.get("pdf_urls", [])] if url))
     sources = sorted({str(source) for p in (primary, secondary) for source in [p.source, *p.metadata.get("sources", [])]})
     queries = list(dict.fromkeys(q for p in (primary, secondary) for q in p.metadata.get("queries", [])))
     venues = list(dict.fromkeys(value for p in (primary, secondary) for value in [p.metadata.get("venue"), *p.metadata.get("venues", [])] if value))
+    lists = {name: list(dict.fromkeys(value for p in (primary, secondary) for value in p.metadata.get(name, []))) for name in ("issn", "isbn", "openalex_source_ids")}
     primary.authors = primary.authors or secondary.authors
     primary.year = primary.year or secondary.year
     primary.doi = primary.doi or secondary.doi
     primary.url = primary.url or secondary.url
     primary.abstract = primary.abstract or secondary.abstract
-    primary.citations = max(primary.citations or 0, secondary.citations or 0) or None
+    counts = [paper.citations for paper in (primary, secondary) if paper.citations is not None]
+    primary.citations = max(counts) if counts else None
     primary.pdf_url = primary.pdf_url or secondary.pdf_url
     primary.oa_status = primary.oa_status or secondary.oa_status
-    primary.metadata = {**secondary.metadata, **primary.metadata, "sources": sources, "pdf_urls": pdf_urls, "queries": queries, "venues": venues}
+    for name in ("arxiv_id", "dblp_id", "code_url", "affiliations", "keywords", "categories", "concepts", "venue", "venue_type"):
+        if not getattr(primary, name):
+            setattr(primary, name, getattr(secondary, name))
+    for name in ("affiliations", "keywords", "categories", "concepts"):
+        import json
+        merged = {json.dumps(value, sort_keys=True, ensure_ascii=False): value for paper in (secondary, primary) for value in getattr(paper, name)}
+        setattr(primary, name, list(merged.values()))
+    formal = next((paper for paper in (primary, secondary) if paper.publication_status in {"journal", "journal-article", "conference", "proceedings-article"}), None)
+    if formal:
+        primary.publication_status = formal.publication_status
+        primary.venue_type = formal.venue_type
+        primary.venue = formal.venue or formal.metadata.get("venue") or primary.venue
+    raw_records = [*secondary.metadata.get("raw_records", []), *primary.metadata.get("raw_records", [])]
+    import json
+    raw_records = list({json.dumps(record, sort_keys=True, ensure_ascii=False): record for record in raw_records}.values())
+    primary.versions = versions
+    primary.sources = sources
+    primary.metadata = {**secondary.metadata, **primary.metadata, "versions": versions, "raw_records": raw_records, **lists, "sources": sources, "pdf_urls": pdf_urls, "queries": queries, "venues": venues}
+    if formal:
+        primary.metadata["venue"] = primary.venue
     return primary
 
 
@@ -472,7 +338,9 @@ def paper_from_openalex(item: dict) -> Paper:
         citations=item.get("cited_by_count"),
         pdf_url=first(pdf_urls),
         oa_status=oa.get("oa_status") if oa.get("is_oa") else "closed",
-        metadata={"openalex_id": item.get("id"), "published": item.get("publication_date"), "pdf_urls": pdf_urls,
+        affiliations=list(dict.fromkeys(inst.get("display_name") for author in item.get("authorships", []) for inst in author.get("institutions", []) if inst.get("display_name"))),
+        concepts=item.get("concepts") or [], keywords=[entry.get("display_name", "") for entry in item.get("keywords", [])],
+        metadata={"raw_records": [{"source": "openalex", "record": item}], "openalex_source_ids": list(dict.fromkeys(loc["source"]["id"].rsplit("/", 1)[-1] for loc in [item.get("primary_location") or {}, *locations] if loc.get("source") and loc["source"].get("id"))), "issn": ((item.get("primary_location") or {}).get("source") or {}).get("issn") or [], "openalex_id": item.get("id"), "published": item.get("publication_date"), "pdf_urls": pdf_urls,
                   "venue": ((item.get("primary_location") or {}).get("source") or {}).get("display_name"), "publication_type": item.get("type")},
     )
 
@@ -496,7 +364,9 @@ def paper_from_crossref(item: dict) -> Paper:
         citations=item.get("is-referenced-by-count"),
         pdf_url=first_link_url(item, content_type="application/pdf"),
         oa_status="license_present" if license_url else None,
-        metadata={"publisher": item.get("publisher"), "license": license_url, "published": crossref_publication_date(item),
+        affiliations=list(dict.fromkeys(aff.get("name") for author in item.get("author", []) for aff in author.get("affiliation", []) if aff.get("name"))),
+        keywords=item.get("subject") or [],
+        metadata={"raw_records": [{"source": "crossref", "record": item}], "issn": item.get("ISSN") or [], "isbn": item.get("ISBN") or [], "publisher": item.get("publisher"), "license": license_url, "published": crossref_publication_date(item),
                   "venue": first(item.get("container-title")), "publication_type": item.get("type"),
                   "pdf_urls": [link["URL"] for link in item.get("link", []) if link.get("content-type") == "application/pdf" and link.get("URL")]},
     )
@@ -521,7 +391,8 @@ def paper_from_arxiv_entry(entry: ET.Element, ns: dict[str, str]) -> Paper:
         abstract=" ".join(text(entry, "atom:summary", ns).split()),
         pdf_url=pdf_url,
         oa_status="green",
-        metadata={"arxiv_id": text(entry, "atom:id", ns).rsplit("/", 1)[-1], "published": published, "updated": text(entry, "atom:updated", ns), "publication_type": "preprint", "venue": text(entry, "arxiv:journal_ref", ns) or "arXiv"},
+        categories=[e.get("term") for e in entry.findall("atom:category", ns) if e.get("term")],
+        metadata={"raw_records": [{"source": "arxiv", "record": ET.tostring(entry, encoding="unicode")}], "journal_ref": text(entry, "arxiv:journal_ref", ns), "arxiv_id": text(entry, "atom:id", ns).rsplit("/", 1)[-1], "published": published, "updated": text(entry, "atom:updated", ns), "publication_type": "preprint", "venue": text(entry, "arxiv:journal_ref", ns) or "arXiv"},
     )
 
 
@@ -574,3 +445,7 @@ def text(element: ET.Element, path: str, ns: dict[str, str]) -> str:
 
 def default_end_year() -> int:
     return date.today().year
+
+
+def locals_for_search(values):
+    return {key: value for key, value in values.items() if key != "_search"}

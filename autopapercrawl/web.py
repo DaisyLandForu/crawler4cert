@@ -12,6 +12,8 @@ from urllib.parse import parse_qs, quote, urlparse
 
 from .workbench import ROOT, Workbench, export_csv, export_html
 from .venues import VENUES
+from .adapters import ADAPTERS, capability_matrix
+from .exports import export_json, export_bibtex
 
 ASSETS = Path(__file__).resolve().parent / "web_assets"
 
@@ -78,7 +80,14 @@ def handler_class(service, token):
                     mime = {"index.html": "text/html; charset=utf-8", "app.js": "text/javascript; charset=utf-8", "style.css": "text/css; charset=utf-8"}[name]
                     self.send((ASSETS / name).read_bytes(), mime)
                 elif url.path == "/api/config":
-                    self.json({"defaults": service.settings(), "topics": {key: item["label"] for key, item in service.topics.items()}, "venues": [{"id": key, "label": names[-1] if len(names) > 1 else names[0], "name": names[0]} for key, names in VENUES.items()], "token": token})
+                    self.json({"instance": {"project_root": str(service.root), "interface": "configurable-registry"},
+                               "defaults": service.settings(), "topics": {key: item["label"] for key, item in service.topics.items()},
+                               "venues": [{"id": key, "label": item.get("abbreviation") or item["name"], **item} for key, item in service.registry.list("venues", enabled_only=True).items()],
+                               "sources": {key: adapter(None).get_capabilities() for key, adapter in ADAPTERS.items()}, "token": token})
+                elif url.path == "/api/registry":
+                    self.json({"domains": service.registry.list("domains"), "venues": service.registry.list("venues")})
+                elif url.path == "/api/capabilities":
+                    self.json({"venues": capability_matrix(service.registry), "states": service.source_states()})
                 elif url.path == "/api/papers":
                     offset = max(0, int(params.pop("offset", 0)))
                     limit = max(1, min(200, int(params.pop("limit", 50))))
@@ -98,8 +107,15 @@ def handler_class(service, token):
                 elif url.path == "/api/export":
                     fmt = params.pop("format", "csv")
                     rows = service.list_papers(params, limit=0)["items"]
+                    if params.get("ids"):
+                        selected = set(params["ids"].split(","))
+                        rows = [row for row in rows if row["id"] in selected]
                     if fmt == "html":
                         self.send(export_html(rows), "text/html; charset=utf-8", filename="论文下载报告.html")
+                    elif fmt == "json":
+                        self.send(export_json(rows), filename="papers.json")
+                    elif fmt == "bib":
+                        self.send(export_bibtex(rows), "application/x-bibtex; charset=utf-8", filename="papers.bib")
                     else:
                         self.send(export_csv(rows), "text/csv; charset=utf-8", filename="论文目录与下载结果.csv")
                 else:
@@ -120,6 +136,30 @@ def handler_class(service, token):
                 path = urlparse(self.path).path
                 if path == "/api/search":
                     self.json(service.start_search(data), 202)
+                elif path == "/api/plan":
+                    self.json(service.preview_plan(data))
+                elif path == "/api/registry/save":
+                    record = service.registry.save(data["kind"], data["record"])
+                    service.topics = service.registry.topics()
+                    self.json(record)
+                elif path == "/api/registry/delete":
+                    service.registry.delete(data["kind"], data["id"])
+                    service.topics = service.registry.topics()
+                    self.json({"ok": True})
+                elif path == "/api/library/delete":
+                    self.json(service.delete_records(data.get("ids") or []))
+                elif path == "/api/library/reclassify":
+                    self.json({"updated": service.reclassify(data.get("ids") or [])})
+                elif path == "/api/retry":
+                    self.json(service.retry_job(data["id"]), 202)
+                elif path == "/api/health":
+                    source = data["source"]
+                    if source not in ADAPTERS:
+                        raise ValueError("来源未实现")
+                    from .http import HttpClient
+                    result = ADAPTERS[source](HttpClient(timeout_seconds=12, retries=0), service.registry).health_check()
+                    service.registry.verification(source, result=result)
+                    self.json(result)
                 elif path == "/api/download":
                     self.json(service.start_download(data.get("ids") or [], data.get("directory"), email=data.get("email"), lookup=data.get("lookup", True)), 202)
                 elif path == "/api/import":
@@ -145,7 +185,7 @@ def serve(port=8765, *, root=ROOT, open_browser=True):
     service = Workbench(root, recover_jobs=True)
     server.RequestHandlerClass = handler_class(service, token)
     url = f"http://127.0.0.1:{server.server_address[1]}"
-    print(f"AutoPaperCrawl 论文工作台：{url}\n保持此进程运行，按 Ctrl+C 关闭。", flush=True)
+    print(f"crawler4cert 论文工作台：{url}\n项目目录：{service.root}\n保持此进程运行，按 Ctrl+C 关闭。", flush=True)
     if open_browser:
         webbrowser.open(url)
     try:

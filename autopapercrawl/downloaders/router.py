@@ -16,6 +16,14 @@ from .unimplemented import publisher_not_implemented
 METADATA_PROVIDERS = ["arxiv", "openalex", "crossref"]
 PUBLISHER_PROVIDERS = ["gsw", "seg", "sciencedirect", "cnki", "onepetro"]
 ALL_PROVIDERS = METADATA_PROVIDERS + PUBLISHER_PROVIDERS
+CUSTOM_DOWNLOADERS = {}
+
+
+def register_downloader(identifier, handler):
+    """Register an explicit local adapter: handler(target, directory, options)."""
+    if not identifier or not callable(handler):
+        raise ValueError("Downloader needs an ID and a callable handler")
+    CUSTOM_DOWNLOADERS[identifier] = handler
 
 
 @dataclass
@@ -68,7 +76,9 @@ def download_target(
         provider = provider.strip().lower()
         if not provider:
             continue
-        if provider in {"arxiv", "openalex", "crossref"}:
+        if provider in CUSTOM_DOWNLOADERS:
+            result = CUSTOM_DOWNLOADERS[provider](target, pdf_dir, options)
+        elif provider in {"arxiv", "openalex", "crossref"}:
             if public_result is not None:
                 continue
             result = download_pdf_url(
@@ -146,6 +156,14 @@ def download_target(
             continue
 
         if result.status in {"downloaded", "exists"}:
+            from ..pdf_validation import inspect_pdf
+            try:
+                details = inspect_pdf(result.path)
+                for field, value in details.items():
+                    setattr(result, field, value)
+            except (OSError, ValueError, TypeError) as exc:
+                last_result = DownloadResult(status="failed_not_pdf", provider=provider, title=target.title, doi=target.doi, reason=str(exc))
+                continue
             if public_result is not None:
                 result.attempts = [*public_result.attempts, *result.attempts]
             return result

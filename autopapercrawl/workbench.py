@@ -1,10 +1,8 @@
 """Persistent local library and reusable search/download operations."""
 from __future__ import annotations
 
-import csv
 import hashlib
 import html
-import io
 import json
 import os
 import shutil
@@ -19,6 +17,13 @@ from pathlib import Path
 from .downloaders.common import ensure_pdf_bytes, safe_filename
 from .http import HttpClient
 from .models import Paper
+from .registry import Registry
+from .database import migrate, index_record, sql_filter, backup_database
+from .identity import same_identity, identifiers, relate_versions
+from .adapters import ADAPTERS
+from .planning import build_plan
+from .exports import export_csv as full_csv, export_json, export_bibtex
+from .pdf_validation import inspect_pdf
 from .open_access import download_public_pdf
 from .search import deduplicate, in_year_range, merge_papers, publication_cutoff, search_all
 from .targets import paper_to_target
@@ -78,9 +83,12 @@ class Workbench:
         config = self.root / "config" / "workbench.json"
         self.defaults = json.loads(config.read_text(encoding="utf-8")) if config.exists() else json.loads((ROOT / "config" / "workbench.json").read_text(encoding="utf-8"))
         self.defaults["email"] = os.getenv("PAPER_EMAIL")
-        self.topics = load_topics()
+        self.registry = Registry(self.root)
+        self.topics = self.registry.topics()
+        self.migration_backup = migrate(self.database)
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="papers")
         self.job_lock = threading.Lock()
+        self.library_lock = threading.RLock()
         with self.db() as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS papers (id TEXT PRIMARY KEY, paper_key TEXT UNIQUE, title_key TEXT, doi TEXT, document TEXT NOT NULL)")
             conn.execute("CREATE INDEX IF NOT EXISTS papers_title ON papers(title_key)")
@@ -92,7 +100,7 @@ class Workbench:
                     job = json.loads(row[1])
                     if job["status"] in {"running", "queued"}:
                         job.update(status="interrupted", message="上次运行已中断，可重新查询或重试下载")
-                        conn.execute("UPDATE jobs SET document=? WHERE id=?", (json.dumps(job, ensure_ascii=False), row[0]))
+                        conn.execute("UPDATE jobs SET document=?,status=? WHERE id=?", (json.dumps(job, ensure_ascii=False), job["status"], row[0]))
         if import_existing and empty:
             self.import_existing()
 
@@ -112,39 +120,63 @@ class Workbench:
         with self.db() as conn:
             custom = {key: json.loads(value) for key, value in conn.execute("SELECT key,value FROM settings")}
         return {**self.defaults, "start_year": date.today().year - 2, "end_year": date.today().year,
-                "directions": list(self.topics), "download_dir": str(self.root / self.defaults["download_dir"]), **custom}
+                "directions": [key for key in self.defaults.get("default_domains", list(load_topics())) if key in self.topics], "download_dir": str(self.root / self.defaults["download_dir"]), **custom}
 
     def set_download_dir(self, directory):
         with self.db() as conn:
             conn.execute("INSERT OR REPLACE INTO settings VALUES (?,?)", ("download_dir", json.dumps(str(directory))))
 
     def store(self, papers):
-        ids = []
-        with self.db() as conn:
-            for paper in papers:
-                title_key = normalized_text(paper.title)
-                row = conn.execute("SELECT id,document FROM papers WHERE paper_key=?", (paper.key,)).fetchone()
-                if not row:
-                    row = conn.execute("SELECT id,document FROM papers WHERE title_key=? AND (doi IS NULL OR ? IS NULL) LIMIT 1", (title_key, paper.doi)).fetchone()
-                old = json.loads(row[1]) if row else {}
-                if old:
-                    paper = merge_papers(paper, paper_from_dict(old))
-                identifier = row[0] if row else hashlib.sha256(paper.key.encode()).hexdigest()[:24]
-                record = {**old, **paper.as_dict(), "id": identifier, "key": paper.key, "directions": paper.metadata.get("directions", old.get("directions", [])), "venues": paper_venues(paper)}
-                conn.execute("INSERT OR REPLACE INTO papers VALUES (?,?,?,?,?)", (identifier, paper.key, title_key, paper.doi, json.dumps(record, ensure_ascii=False)))
-                ids.append(identifier)
-        return list(dict.fromkeys(ids))
+        with self.library_lock:
+            ids = []
+            with self.db() as conn:
+                for paper in papers:
+                    title_key = normalized_text(paper.title)
+                    row = None
+                    for value in identifiers(paper):
+                        row = conn.execute("SELECT p.id,p.document FROM paper_identifiers i JOIN papers p ON p.id=i.paper_id WHERE i.identifier=?", (value,)).fetchone()
+                        if row and same_identity(paper, paper_from_dict(json.loads(row[1]))):
+                            break
+                        row = None
+                    if not row:
+                        candidates = conn.execute("SELECT id,document FROM papers WHERE title_key=?", (title_key,)).fetchall()
+                        row = next((value for value in candidates if same_identity(paper, paper_from_dict(json.loads(value[1])))), None)
+                    old = json.loads(row[1]) if row else {}
+                    if old:
+                        paper = merge_papers(paper, paper_from_dict(old))
+                    identifier = row[0] if row else hashlib.sha256(paper.key.encode()).hexdigest()[:24]
+                    record = {**old, **paper.as_dict(), "id": identifier, "paper_id": identifier, "key": paper.key, "directions": paper.metadata.get("directions", old.get("directions", [])), "venues": paper_venues(paper)}
+                    conn.execute("INSERT OR REPLACE INTO papers (id,paper_key,title_key,doi,document) VALUES (?,?,?,?,?)", (identifier, paper.key, title_key, paper.doi, json.dumps(record, ensure_ascii=False)))
+                    index_record(conn, identifier, record)
+                    # Link independently published versions across separate runs.
+                    related = conn.execute("SELECT id,document FROM papers WHERE title_key=? AND id<>?", (title_key, identifier)).fetchall()
+                    for other_id, other_doc in related:
+                        other = json.loads(other_doc)
+                        other_paper = paper_from_dict(other)
+                        relate_versions([paper, other_paper])
+                        if other_paper.metadata.get("related_versions"):
+                            other["metadata"] = other_paper.metadata
+                            conn.execute("UPDATE papers SET document=? WHERE id=?", (json.dumps(other, ensure_ascii=False), other_id))
+                    if paper.metadata.get("related_versions"):
+                        record["metadata"] = paper.metadata
+                        conn.execute("UPDATE papers SET document=? WHERE id=?", (json.dumps(record, ensure_ascii=False), identifier))
+                    ids.append(identifier)
+            return list(dict.fromkeys(ids))
 
     def update_download(self, identifier, result):
-        with self.db() as conn:
-            row = conn.execute("SELECT document FROM papers WHERE id=?", (identifier,)).fetchone()
-            if row:
-                record = json.loads(row[0])
-                old_path = (record.get("download") or {}).get("path")
-                if result_outcome(result) != "success" and old_path and ensure_pdf_bytes(Path(old_path)):
-                    result["previous_path"] = old_path
-                record["download"] = result
-                conn.execute("UPDATE papers SET document=? WHERE id=?", (json.dumps(record, ensure_ascii=False), identifier))
+        with self.library_lock:
+            with self.db() as conn:
+                row = conn.execute("SELECT document FROM papers WHERE id=?", (identifier,)).fetchone()
+                if row:
+                    record = json.loads(row[0])
+                    old_path = (record.get("download") or {}).get("path")
+                    if result_outcome(result) != "success" and old_path and ensure_pdf_bytes(Path(old_path)):
+                        result["previous_path"] = old_path
+                    record["download"] = result
+                    record["local_pdf"] = result.get("path") or result.get("previous_path")
+                    record["download_status"] = result_outcome(result)
+                    conn.execute("UPDATE papers SET document=? WHERE id=?", (json.dumps(record, ensure_ascii=False), identifier))
+                    index_record(conn, identifier, record)
 
     def import_existing(self):
         catalog = self.root / "outputs" / "security_research" / "raw" / "main" / "papers.json"
@@ -166,19 +198,25 @@ class Workbench:
                 row = conn.execute("SELECT document FROM papers WHERE id=?", (identifier,)).fetchone()
                 record = json.loads(row[0])
                 # Import old reports only if they do not replace a newer UI run.
-                if record["key"] in by_key and not record.get("download"):
-                    record["download"] = by_key[record["key"]]
+                legacy_key = "title:" + " ".join(record["title"].lower().strip().split())
+                match = by_key.get(record["key"]) or by_key.get(legacy_key)
+                if match and not record.get("download"):
+                    record["download"] = match
                     conn.execute("UPDATE papers SET document=? WHERE id=?", (json.dumps(record, ensure_ascii=False), identifier))
+                    index_record(conn, identifier, record)
         return len(ids)
 
     def records(self, ids=None):
         with self.db() as conn:
-            rows = conn.execute("SELECT document FROM papers").fetchall()
-        items = [json.loads(row[0]) for row in rows]
-        if ids is not None:
-            wanted = set(ids)
-            items = [item for item in items if item["id"] in wanted]
-        return sorted(items, key=lambda item: (item.get("year") or 0, str(item.get("metadata", {}).get("published") or ""), item.get("citations") or 0, item["title"]), reverse=True)
+            if ids is None:
+                rows = conn.execute("SELECT document FROM papers ORDER BY year DESC,citations DESC,title_key").fetchall()
+            else:
+                ids = list(ids)
+                rows = []
+                for index in range(0, len(ids), 800):
+                    batch = ids[index:index + 800]
+                    rows.extend(conn.execute("SELECT document FROM papers WHERE id IN (" + ",".join("?" for _ in batch) + ")", batch).fetchall())
+        return [json.loads(row[0]) for row in rows]
 
     def public_record(self, record):
         result = record.get("download") or {}
@@ -195,45 +233,35 @@ class Workbench:
                 "direction_labels": [self.topics[key]["label"] for key in record.get("directions", []) if key in self.topics]}
 
     def list_papers(self, filters=None, *, offset=0, limit=50):
-        filters = filters or {}
-        rows = self.records()
+        filters = dict(filters or {})
         scope = filters.get("job_id")
-        if scope:
-            job = self.get_job(scope)
-            wanted = set(job.get("paper_ids", [])) if job else set()
-            rows = [row for row in rows if row["id"] in wanted]
-        start = int(filters.get("start_year") or 0)
-        end = int(filters.get("end_year") or 9999)
-        directions = filters.get("directions") or []
-        if isinstance(directions, str):
-            directions = [part for part in directions.split(",") if part]
-        venues = filters.get("venues") or []
-        if isinstance(venues, str):
-            venues = [part.strip() for part in venues.split(";") if part.strip()]
-        title = normalized_text(filters.get("title") or "")
-        query = normalized_text(filters.get("query") or "")
-        public = []
-        for row in rows:
-            if not start <= (row.get("year") or 0) <= end:
-                continue
-            if directions and not set(directions).intersection(row.get("directions", [])):
-                continue
-            if title and title not in normalized_text(row["title"]):
-                continue
-            if query and query not in normalized_text(row["title"] + " " + (row.get("abstract") or "")):
-                continue
-            if venues and not any(venue_matches(actual, wanted) for actual in row.get("venues", []) for wanted in venues):
-                continue
-            item = self.public_record(row)
-            if filters.get("status") and filters["status"] != item["outcome"]:
-                continue
-            public.append(item)
-        counts = {key: sum(item["outcome"] == key for item in public) for key in STATUS_LABELS}
-        return {"total": len(public), "items": public[offset:offset + limit] if limit else public,
-                "all_ids": [item["id"] for item in public], "counts": counts}
+        job = self.get_job(scope) if scope else None
+        if scope and job is None:
+            return {"total": 0, "items": [], "all_ids": [], "counts": {key: 0 for key in STATUS_LABELS}}
+        requested_status = filters.pop("status", None)
+        with self.db() as conn:
+            where, params = sql_filter(conn, filters, self.registry, job)
+            conn.create_function("local_file_exists", 1, lambda path: int(bool(path and Path(path).is_file())))
+            effective = "CASE WHEN outcome='success' AND NOT local_file_exists(coalesce(json_extract(document,'$.download.path'),json_extract(document,'$.download.previous_path'))) THEN 'request_failed' ELSE outcome END"
+            if requested_status:
+                where += (" AND " if where else " WHERE ") + effective + "=?"
+                params.append(requested_status)
+            sort = {"citations": "citations DESC,year DESC,id", "title": "title_key ASC,id"}.get(filters.get("sort"), "year DESC,coalesce(json_extract(document,'$.metadata.published'),'') DESC,citations DESC,id")
+            projected = conn.execute("SELECT id," + effective + " FROM papers" + where + " ORDER BY " + sort, params).fetchall()
+            pagination = " LIMIT ? OFFSET ?" if limit else ""
+            rows = conn.execute("SELECT document FROM papers" + where + " ORDER BY " + sort + pagination, [*params, limit, max(0, offset)] if limit else params).fetchall()
+        public = [self.public_record(json.loads(row[0])) for row in rows]
+        counts = {key: sum(outcome == key for _, outcome in projected) for key in STATUS_LABELS}
+        return {"total": len(projected), "items": public, "all_ids": [identifier for identifier, _ in projected], "counts": counts}
 
     def search_options(self, supplied):
         options = {**self.settings(), **supplied}
+        if "sources" not in supplied and supplied.get("directions"):
+            requested = supplied["directions"]
+            requested = requested.split(",") if isinstance(requested, str) else requested
+            defaults = list(dict.fromkeys(source for key in requested if key in self.topics for source in self.topics[key].get("default_sources", [])))
+            if defaults:
+                options["sources"] = defaults
         for field in ("start_year", "end_year", "max_results", "per_query", "query_limit", "page_size", "retries"):
             options[field] = int(options[field])
         if not 1991 <= options["start_year"] <= options["end_year"] <= date.today().year:
@@ -248,28 +276,48 @@ class Workbench:
             raise ValueError("超时应为 1–180 秒，请求间隔应为 0–60 秒")
         for field in ("directions", "sources", "venues"):
             value = options.get(field) or []
-            options[field] = [part.strip() for part in value.split(",") if part.strip()] if isinstance(value, str) else list(value)
+            options[field] = list(dict.fromkeys([part.strip() for part in value.split(",") if part.strip()] if isinstance(value, str) else list(value)))
         if set(options["directions"]) - set(self.topics):
             raise ValueError("研究方向无效")
-        if not options["sources"] or set(options["sources"]) - {"arxiv", "openalex", "crossref"}:
+        if not options["sources"] or set(options["sources"]) - set(ADAPTERS):
             raise ValueError("请选择有效的数据来源")
         for field in ("query", "title"):
             options[field] = str(options.get(field) or "").strip()[:1000]
         if not (options["directions"] or options["query"] or options["title"] or options["venues"]):
             raise ValueError("请选择方向，或填写关键词、标题、会议期刊")
+        options["enrich_metadata"] = bool(options.get("enrich_metadata", True))
+        options["enrichment_limit"] = max(0, min(100, int(options.get("enrichment_limit", 10))))
+        options["mode"] = str(options.get("mode") or self.defaults.get("mode", "standard"))
+        options["overlap_days"] = int(options.get("overlap_days", 7))
+        if not 0 <= options["overlap_days"] <= 90:
+            raise ValueError("重叠窗口应为 0–90 天")
         return options
 
     def new_job(self, kind, options):
         identifier = uuid.uuid4().hex
         job = {"id": identifier, "kind": kind, "status": "queued", "created": now(), "done": 0, "total": 0,
-               "message": "等待处理", "options": options, "paper_ids": [], "diagnostics": [], "results": []}
+               "name": options.get("name") or ("论文检索" if kind == "search" else "PDF 下载"), "message": "等待处理", "options": options, "paper_ids": [], "diagnostics": [], "results": []}
+        if kind == "search":
+            job["plan"] = self.preview_plan(options)
+            entries = job["plan"]["entries"]
+            job["search_conditions"] = {
+                "directions": [{"id": key, "label": self.topics[key]["label"]} for key in options["directions"]],
+                "venues": [{"id": value, "label": (self.registry.venue(value) or {}).get("name", value)} for value in options["venues"]],
+                "title": options["title"], "query": options["query"],
+                "start_year": options["start_year"], "end_year": options["end_year"],
+                "queries": list(dict.fromkeys(entry["query"] for entry in entries)),
+                "sources": list(dict.fromkeys(source for entry in entries for source in entry["sources"])),
+                "mode": options["mode"], "max_results": options["max_results"],
+                "download_pdfs": bool(options.get("download_pdfs")),
+                "download_dir": str(options.get("download_dir") or self.settings()["download_dir"]),
+            }
         self.save_job(job)
         self.executor.submit(self.run_job, job)
         return self.get_job(identifier)
 
     def save_job(self, job):
         with self.db() as conn:
-            conn.execute("INSERT OR REPLACE INTO jobs VALUES (?,?)", (job["id"], json.dumps(job, ensure_ascii=False)))
+            conn.execute("INSERT OR REPLACE INTO jobs (id,document,status,created) VALUES (?,?,?,?)", (job["id"], json.dumps(job, ensure_ascii=False), job["status"], job["created"]))
 
     def get_job(self, identifier):
         with self.db() as conn:
@@ -300,68 +348,215 @@ class Workbench:
 
     def run_job(self, job):
         try:
-            self.progress(job, status="running", message="正在开始")
+            if not self.progress(job, status="running", started=now(), message="正在开始"):
+                self.progress(job, status="cancelled", finished=now())
+                return
             if job["kind"] == "search":
                 self.run_search(job)
+                if job["options"].get("download_pdfs") and job["paper_ids"] and not job.get("cancel_requested"):
+                    self.run_search_download(job)
             else:
                 self.run_download(job)
-            self.progress(job, status="cancelled" if job.get("cancel_requested") else "completed", finished=now())
+            job.update(status="cancelled" if job.get("cancel_requested") else "completed", finished=now())
+            if job["kind"] == "search":
+                self.write_search_report(job)
+            self.progress(job)
         except Exception as exc:
-            self.progress(job, status="failed", error=str(exc), message=str(exc), finished=now())
+            job.update(status="failed", error=str(exc), message=str(exc), finished=now())
+            if job["kind"] == "search":
+                try:
+                    self.write_search_report(job)
+                except OSError as report_error:
+                    job["report_error"] = str(report_error)
+            self.progress(job)
 
     def start_search(self, options):
         return self.new_job("search", self.search_options(options))
 
     def run_search(self, job):
         options = job["options"]
-        if options["query"] or options["title"]:
-            queries = [options["query"] or options["title"]]
-        else:
-            queries = list(dict.fromkeys(query for key in options["directions"] for query in self.topics[key]["queries"][:options["query_limit"] or None])) or [""]
-        plan = [(query, venue) for query in queries for venue in options["venues"] or [None]]
+        plan = job["plan"]
+        entries = plan["entries"]
         client = HttpClient(delay_seconds=options["delay"], timeout_seconds=options["timeout"], retries=options["retries"])
         candidates = []
-        for index, (query, venue) in enumerate(plan):
-            if not self.progress(job, total=len(plan), done=index, message=f"检索 {query or '全部论文'}" + (f" · {canonical(venue)}" if venue else "")):
+        enriched = set()
+        enrichment_success = 0
+        for index, entry in enumerate(entries):
+            query, venue = entry["query"], entry["venue"]
+            if not self.progress(job, total=len(entries), done=index, message=f"检索 {query or '全部论文'}" + (f" · {venue}" if venue else "")):
                 break
-            sources = options["sources"]
-            # arXiv records without a journal reference cannot establish a
-            # conference/journal match. Publication APIs provide that evidence.
-            if venue and canonical(venue).lower() != "arxiv":
-                sources = [source for source in sources if source != "arxiv"]
-            if not sources:
-                job["diagnostics"].append({"status": "skipped", "reason": "该会议/期刊筛选需要 OpenAlex 或 Crossref 出处元数据"})
-                continue
+            sources = entry["sources"]
             found = search_all(query, max_results=options["per_query"], start_year=options["start_year"], end_year=options["end_year"],
                 client=client, email=options.get("email") or None, sources=sources, page_size=options["page_size"], sort_by="newest",
-                diagnostics=job["diagnostics"], truncate_results=False, venue=venue, title_filter=options["title"] or None)
+                diagnostics=job["diagnostics"], truncate_results=False, venue=venue, title_filter=options["title"] or None, registry=self.registry, from_date=plan["since"])
+            raw_dir = self.root / "outputs" / "tasks" / job["id"]
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            with (raw_dir / "raw_records.jsonl").open("a", encoding="utf-8") as handle:
+                for paper in found:
+                    handle.write(json.dumps(paper.as_dict(), ensure_ascii=False) + "\n")
+            for found_index, paper in enumerate(found):
+                paper.metadata.setdefault("queries", []).append(query)
+                if options.get("enrich_metadata", True) and paper.doi and not paper.abstract and paper.doi not in enriched and len(enriched) < int(options.get("enrichment_limit", 20)):
+                    from .search import resolve_doi
+                    enriched.add(paper.doi)
+                    enriched_paper = resolve_doi(paper.doi, client, options.get("email"))
+                    if enriched_paper and enriched_paper.doi == paper.doi:
+                        paper = merge_papers(paper, enriched_paper)
+                        found[found_index] = paper
+                        enrichment_success += 1
             candidates.extend(found)
-            accepted = []
+            raw_dir = self.root / "outputs" / "tasks" / job["id"]
+            raw_dir.mkdir(parents=True, exist_ok=True)
+            (raw_dir / "candidates.json").write_bytes(export_json([paper.as_dict() for paper in candidates]))
+            accepted, pending_venue = [], 0
             for paper in deduplicate(candidates):
                 if not in_year_range(paper.year, options["start_year"], options["end_year"]):
                     continue
-                if str(paper.metadata.get("published") or "")[:10] > publication_cutoff(options["end_year"]):
+                published = str(paper.metadata.get("published") or "")[:10]
+                if published and published > publication_cutoff(options["end_year"]):
                     continue
-                labels = classify_paper(paper, self.topics)
-                if options["directions"] and not set(labels).intersection(options["directions"]):
-                    continue
+                classify_paper(paper, self.topics)
                 if options["title"] and normalized_text(options["title"]) not in normalized_text(paper.title):
                     continue
-                if options["venues"] and not any(venue_matches(actual, wanted) for actual in paper_venues(paper) for wanted in options["venues"]):
-                    continue
+                if options["venues"]:
+                    from .venues import match_paper_venue
+                    matches = [match_paper_venue(paper, wanted, self.registry) for wanted in options["venues"]]
+                    if not any(match["status"] in {"confirmed", "probable"} for match in matches):
+                        if paper.arxiv_id or paper.metadata.get("arxiv_id"):
+                            paper.metadata["venue_review_required"] = True
+                            pending_venue += 1
+                        else:
+                            continue
                 accepted.append(paper)
-            job["paper_ids"] = self.store(accepted[:options["max_results"]])
-            self.progress(job, done=index + 1, candidate_count=len(candidates), message=f"已找到 {len(job['paper_ids'])} 篇符合条件的论文")
-        failures = sum(item.get("status") == "request_failed" for item in job["diagnostics"])
-        warnings_detail = []
+            # Classification never discards records. The raw candidate archive
+            # also retains out-of-year, venue-mismatched and over-limit entries.
+            retained = accepted[:options["max_results"]]
+            for paper in accepted:
+                levels = [entry["confidence"] for key, entry in paper.metadata["classification"].items() if not options["directions"] or key in options["directions"]]
+                paper.metadata["review_confidence"] = "high" if "high" in levels else "medium" if "medium" in levels else "low"
+            job["paper_ids"] = self.store(retained)
+            job["candidate_count"] = len(candidates)
+            job["deduplicated_count"] = len(deduplicate(candidates))
+            job["duplicate_count"] = len(candidates) - job["deduplicated_count"]
+            job["excluded_by_limit"] = max(0, len(accepted) - len(retained))
+            job["venue_review_count"] = pending_venue
+            job["classification_counts"] = {level: sum(any(value["confidence"] == level for value in paper.metadata["classification"].values()) for paper in retained) for level in ("high", "medium", "low")}
+            self.progress(job, done=index + 1, message=f"已召回 {len(candidates)} 条，入库 {len(job['paper_ids'])} 篇")
+        job["enrichment_stats"] = {"doi_attempted": len(enriched), "doi_resolved": enrichment_success, "http_requests": client.request_count, "successful_requests": client.success_count, "failed_requests": client.failure_count}
+        failures = sum(item.get("status") in {"request_failed", "unsupported"} for item in job["diagnostics"])
+        source_stats = {}
         for item in job["diagnostics"]:
-            if item.get("status") == "request_failed":
-                error = str(item.get("error") or item.get("reason") or "")
-                cause = "访问限流（429），可稍后重试或暂时取消该来源" if "429" in error else "请求失败，请在任务详情中查看原因"
-                warnings_detail.append(f"{item.get('source', '数据来源')}：{cause}")
-            elif item.get("status") == "skipped":
-                warnings_detail.append(item.get("reason") or "该来源暂不支持当前条件")
-        self.progress(job, message=f"查询完成，保留 {len(job['paper_ids'])} 篇" + (f"；{failures} 次来源请求失败，请查看详情" if failures else ""), warnings=failures, warnings_detail=list(dict.fromkeys(warnings_detail)))
+            stats = source_stats.setdefault(item.get("source", "unknown"), {"requests": 0, "returned": 0, "successes": 0, "failures": 0, "duplicates": 0, "retained": 0})
+            stats["requests"] += item.get("requests", 0)
+            stats["returned"] += item.get("count", 0)
+            stats["successes"] += int(item.get("status") in {"ok", "empty"})
+            stats["failures"] += int(item.get("status") in {"request_failed", "unsupported"})
+        for source, stats in source_stats.items():
+            source_papers = [paper for paper in candidates if paper.source.lower() == source.lower()]
+            stats["duplicates"] = len(source_papers) - len(deduplicate(source_papers))
+            stats["retained"] = sum(source.lower() in {value.lower() for value in record.get("sources", [])} for record in self.records(job["paper_ids"]))
+        self.record_source_states(job)
+        self.progress(job, source_stats=source_stats, warnings=failures,
+                      warnings_detail=[f"{item.get('source')}: {item.get('error') or item.get('reason')}" for item in job["diagnostics"] if item.get("status") in {"request_failed", "unsupported"}],
+                      message=f"查询完成，保留 {len(job['paper_ids'])} 篇" + (f"；{failures} 次来源请求失败或不支持，请查看详情" if failures else ""))
+
+    def preview_plan(self, supplied):
+        options = self.search_options(supplied)
+        plan = build_plan(options, self.topics)
+        with self.db() as conn:
+            checkpoint = conn.execute("SELECT last_success FROM checkpoints WHERE plan_key=?", (plan["plan_key"],)).fetchone()
+        return build_plan(options, self.topics, checkpoint=checkpoint[0] if checkpoint else None)
+
+    def source_states(self):
+        with self.db() as conn:
+            return [dict(zip(("source", "venue", "last_success", "job_id"), row)) for row in conn.execute("SELECT source,venue,last_success,job_id FROM source_states")]
+
+    def record_source_states(self, job):
+        grouped = {}
+        for diagnostic in job["diagnostics"]:
+            source = diagnostic.get("source")
+            if source:
+                grouped.setdefault((source, diagnostic.get("venue") or ""), []).append(diagnostic)
+        for (source, venue), results in grouped.items():
+            successful = all(item.get("status") in {"ok", "empty"} for item in results)
+            matched = [record for record in self.records(job["paper_ids"]) if (not venue or record.get("metadata", {}).get("venue_matches", {}).get(venue, {}).get("status") in {"confirmed", "probable"}) and source.lower() in {value.lower() for value in record.get("sources", [])}]
+            status = "verified" if matched and successful else "queryable" if successful else "unavailable"
+            if successful and not job.get("cancel_requested"):
+                with self.db() as conn:
+                    conn.execute("INSERT OR REPLACE INTO source_states VALUES (?,?,?,?,?)", (source, venue, now(), job["id"], json.dumps(results, ensure_ascii=False)))
+            self.registry.verification(source, venue, {"status": status, "checked_at": now(), "count": len(matched), "reason": next((item.get("error") for item in results if item.get("error")), None), "job_id": job["id"]})
+        # A cursor is scoped to the whole normalized plan. Never advance on a
+        # failed, cancelled or truncated run: doing so could silently lose papers.
+        complete = len(job["diagnostics"]) == job["plan"]["source_calls"] and all(item.get("status") in {"ok", "empty"} and item.get("count", 0) < job["options"]["per_query"] for item in job["diagnostics"])
+        if complete and not job.get("cancel_requested") and not job.get("excluded_by_limit"):
+            with self.db() as conn:
+                conn.execute("INSERT OR REPLACE INTO checkpoints VALUES (?,?,?)", (job["plan"]["plan_key"], job["started"], job["id"]))
+
+    def write_search_report(self, job):
+        directory = self.root / "outputs" / "tasks" / job["id"]
+        directory.mkdir(parents=True, exist_ok=True)
+        records = [self.public_record(record) for record in self.records(job["paper_ids"])]
+        (directory / "papers.json").write_bytes(export_json(records))
+        (directory / "papers.csv").write_bytes(export_csv(records))
+        (directory / "papers.bib").write_bytes(export_bibtex(records))
+        (directory / "report.html").write_text(export_html(records), encoding="utf-8")
+        job["report_dir"] = str(directory)
+        (directory / "task.json").write_bytes(export_json(job))
+
+    def run_search_download(self, job):
+        original = job["options"]
+        directory = Path(original.get("download_dir") or self.settings()["download_dir"])
+        if not directory.is_absolute():
+            directory = self.root / directory
+        job["options"] = {"ids": list(job["paper_ids"]), "directory": str(directory), "email": original.get("email"), "lookup": True}
+        try:
+            self.run_download(job)
+        finally:
+            job["options"] = original
+
+    def retry_job(self, identifier):
+        job = self.get_job(identifier)
+        if not job or job["status"] in {"queued", "running"}:
+            raise ValueError("任务不存在或尚未结束")
+        options = dict(job["options"])
+        if job["kind"] == "search":
+            entries = [{"query": diagnostic.get("query", ""), "venue": diagnostic.get("venue"), "sources": [diagnostic["source"]]} for diagnostic in job.get("diagnostics", []) if diagnostic.get("status") == "request_failed"]
+            if entries:
+                options["retry_plan"] = entries
+            options["retry_of"] = identifier
+            return self.start_search(options)
+        failed = [row["id"] for row in job.get("results", []) if result_outcome(row) != "success"]
+        failed += [value for value in options["ids"] if value not in {row["id"] for row in job.get("results", [])}]
+        if not failed:
+            raise ValueError("该任务没有失败或未完成的 PDF")
+        return self.start_download(failed, options["directory"], email=options.get("email"), lookup=options.get("lookup", True))
+
+    def reclassify(self, ids):
+        with self.library_lock:
+            self.topics = self.registry.topics()
+            records = self.records(ids)
+            papers = [paper_from_dict(record) for record in records]
+            for paper in papers:
+                classify_paper(paper, self.topics)
+            self.store(papers)
+            return len(papers)
+
+    def delete_records(self, ids):
+        with self.library_lock:
+            records = self.records(ids)
+            if not records:
+                raise ValueError("请选择有效记录")
+            backup = backup_database(self.database)
+            with self.db() as conn:
+                for record in records:
+                    conn.execute("INSERT INTO deleted_papers VALUES (?,?,?)", (record["id"], json.dumps(record, ensure_ascii=False), now()))
+                    conn.execute("DELETE FROM papers WHERE id=?", (record["id"],))
+                    conn.execute("DELETE FROM paper_identifiers WHERE paper_id=?", (record["id"],))
+                    try:
+                        conn.execute("DELETE FROM papers_fts WHERE id=?", (record["id"],))
+                    except sqlite3.OperationalError:
+                        pass
+            return {"deleted": len(records), "backup": backup, "pdf_files_kept": True}
 
     def start_download(self, ids, directory=None, *, email=None, lookup=True):
         ids = list(dict.fromkeys(ids))
@@ -401,8 +596,9 @@ class Workbench:
                     temporary.replace(destination)
                     result = {"status": "downloaded", "outcome": "success", "provider": "local_copy", "path": str(destination), "bytes": destination.stat().st_size}
                 else:
-                    result = download_public_pdf(target, pdf_dir, client, email=options.get("email"), lookup=options["lookup"], retries=client.retries, sleep_seconds=client.delay_seconds).as_dict()
+                    result = download_public_pdf(target, pdf_dir, client, email=options.get("email"), lookup=options["lookup"], retries=client.retries, sleep_seconds=client.delay_seconds, max_bytes=int(self.defaults.get("max_pdf_mb", 100)) * 1024 * 1024).as_dict()
                 if result_outcome(result) == "success":
+                    result.update(inspect_pdf(result["path"]))
                     for direction in record.get("directions", []):
                         if direction not in self.topics:
                             continue
@@ -419,10 +615,12 @@ class Workbench:
             except (OSError, ValueError) as exc:
                 result = {"status": "failed", "outcome": "request_failed", "reason": str(exc), "provider": "local"}
             self.update_download(record["id"], result)
-            job["results"].append({"id": record["id"], "title": record["title"], "year": record.get("year"), "doi": record.get("doi"), "url": record.get("url"), "venues": record.get("venues", []), "directions": record.get("directions", []), **result})
+            job["results"].append({**record, **result})
             self.write_reports(job, directory)
             self.progress(job, done=index + 1, message=f"已处理 {index + 1}/{len(records)} 篇")
         successful = sum(result_outcome(item) == "success" for item in job["results"])
+        job["pdf_success"] = successful
+        job["pdf_failed"] = len(job["results"]) - successful
         self.progress(job, message=f"处理完成：成功 {successful}，未成功 {len(job['results']) - successful}")
 
     def write_reports(self, job, directory):
@@ -439,13 +637,7 @@ class Workbench:
 
 
 def export_csv(records):
-    output = io.StringIO(newline="")
-    writer = csv.writer(output)
-    writer.writerow(["论文标题", "年份", "研究方向", "会议期刊", "下载状态", "说明", "PDF 路径", "DOI"])
-    for record in records:
-        values = [record["title"], record.get("year"), "；".join(record.get("direction_labels", [])), "；".join(record.get("venues", [])), record.get("status_label"), record.get("status_detail"), record.get("local_path"), record.get("doi")]
-        writer.writerow(["'" + str(value) if str(value or "").startswith(("=", "+", "-", "@", "\t", "\r")) else value for value in values])
-    return ("\ufeff" + output.getvalue()).encode("utf-8")
+    return full_csv(records)
 
 
 def export_html(records):

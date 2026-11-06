@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "domains": [
+    {
+      "domain_id": "satellite_security",
+      "domain_name": "卫星互联网安全",
+      "description": "Cybersecurity research preset",
+      "parent_domain": "cybersecurity",
+      "keywords": [
+        "satellite internet security",
+        "satellite network attack",
+        "satellite communication authentication",
+        "LEO constellation security",
+        "Starlink security",
+        "non terrestrial network security",
+        "satellite jamming spoofing"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": true
+    },
+    {
+      "domain_id": "vulnerability_detection",
+      "domain_name": "漏洞检测",
+      "description": "Cybersecurity research preset",
+      "parent_domain": "cybersecurity",
+      "keywords": [
+        "software vulnerability detection",
+        "firmware vulnerability discovery",
+        "binary vulnerability analysis",
+        "smart contract vulnerability detection",
+        "coverage guided fuzzing",
+        "large language model vulnerability detection",
+        "automated exploit generation"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": true
+    },
+    {
+      "domain_id": "encrypted_traffic",
+      "domain_name": "加密流量分析检测",
+      "description": "Cybersecurity research preset",
+      "parent_domain": "cybersecurity",
+      "keywords": [
+        "encrypted traffic classification",
+        "encrypted traffic analysis",
+        "encrypted malicious traffic detection",
+        "TLS traffic fingerprinting",
+        "QUIC traffic classification",
+        "website fingerprinting",
+        "VPN traffic identification"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": true
+    },
+    {
+      "domain_id": "ai_security",
+      "domain_name": "人工智能安全",
+      "description": "Cybersecurity research preset",
+      "parent_domain": "cybersecurity",
+      "keywords": [
+        "large language model jailbreak",
+        "prompt injection defense",
+        "machine learning backdoor attack",
+        "training data poisoning",
+        "adversarial example defense",
+        "membership inference attack",
+        "model extraction attack",
+        "large language model safety alignment"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": true
+    },
+    {
+      "domain_id": "ai_ml",
+      "domain_name": "人工智能与机器学习",
+      "description": "人工智能与机器学习：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "machine learning",
+        "deep learning",
+        "reinforcement learning"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "computer_vision",
+      "domain_name": "计算机视觉",
+      "description": "计算机视觉：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "computer vision",
+        "image segmentation",
+        "object detection"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "nlp",
+      "domain_name": "自然语言处理",
+      "description": "自然语言处理：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "natural language processing",
+        "language model",
+        "machine translation"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "software_engineering",
+      "domain_name": "软件工程",
+      "description": "软件工程：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "software engineering",
+        "software testing",
+        "program repair"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "computer_networks",
+      "domain_name": "计算机网络",
+      "description": "计算机网络：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "computer networks",
+        "network routing",
+        "network measurement"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "databases",
+      "domain_name": "数据库与数据挖掘",
+      "description": "数据库与数据挖掘：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "database systems",
+        "data mining",
+        "query optimization"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "distributed_systems",
+      "domain_name": "分布式系统",
+      "description": "分布式系统：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "distributed systems",
+        "distributed consensus",
+        "cloud computing"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "theory",
+      "domain_name": "理论计算机科学",
+      "description": "理论计算机科学：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "computational complexity",
+        "approximation algorithms",
+        "graph algorithms"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "robotics",
+      "domain_name": "机器人与自动化",
+      "description": "机器人与自动化：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "robotics",
+        "motion planning",
+        "robot learning"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "custom",
+      "domain_name": "其他自定义领域",
+      "description": "其他自定义领域：可修改关键词或新增子方向",
+      "parent_domain": null,
+      "keywords": [
+        "interdisciplinary research"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": true,
+      "show_in_shortcuts": false
+    },
+    {
+      "domain_id": "cybersecurity",
+      "domain_name": "网络安全",
+      "description": "网络安全预设领域的父节点",
+      "parent_domain": null,
+      "keywords": [
+        "cybersecurity"
+      ],
+      "excluded_keywords": [],
+      "venues": [],
+      "default_sources": [
+        "openalex",
+        "crossref",
+        "arxiv",
+        "dblp"
+      ],
+      "enabled": false,
+      "show_in_shortcuts": false
+    }
+  ]
+}

@@ -53,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     argv = list(sys.argv[1:] if argv is None else argv)
-    if not argv or argv[0] in {"serve", "search", "library", "download", "--help", "-h"}:
+    if not argv or argv[0] in {"serve", "search", "library", "download", "run", "retry", "backup", "--help", "-h"}:
         from .workbench_cli import main as workbench_main
         workbench_main(argv or ["serve"])
         return

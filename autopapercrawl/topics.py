@@ -35,27 +35,41 @@ def matches_term(text: str, term: str) -> bool:
 def classify_paper(paper: Paper, topics: dict) -> dict:
     title = normalized_text(paper.title)
     abstract = normalized_text(paper.abstract or "")
-    labels = {}
+    all_labels, labels = {}, {}
     for key, topic in topics.items():
-        evidence = []
-        for group in topic["required_groups"]:
-            hits = []
-            for term in group:
-                if matches_term(title, term):
-                    hits.append({"term": term, "field": "title", "weight": 3})
-                elif matches_term(abstract, term):
-                    hits.append({"term": term, "field": "abstract", "weight": 1})
-            if not hits:
-                break
-            evidence.append(hits)
-        if len(evidence) == len(topic["required_groups"]):
-            score = sum(max(hit["weight"] for hit in group) for group in evidence)
-            labels[key] = {"label": topic["label"], "score": score, "evidence": evidence}
-    paper.metadata["directions"] = list(labels)
-    paper.metadata["classification"] = labels
-    paper.metadata["relevance_score"] = max((item["score"] for item in labels.values()), default=0)
-    paper.metadata["classification_method"] = "title_abstract_rules_v1"
+        terms = list(dict.fromkeys([term for group in topic.get("required_groups", []) for term in group] + topic.get("keywords", topic.get("queries", []))))
+        hits = []
+        for term in terms:
+            field = "title" if matches_term(title, normalized_term(term)) else "abstract" if matches_term(abstract, normalized_term(term)) else None
+            if field:
+                hits.append({"term": term, "field": field, "weight": 3 if field == "title" else 1})
+        excluded = [word for word in topic.get("excluded_keywords", []) if matches_term(title + " " + abstract, normalized_term(word))]
+        groups = topic.get("required_groups", [])
+        grouped = [[hit for hit in hits if hit["term"] in group] for group in groups]
+        covered = sum(bool(group) for group in grouped)
+        coverage = covered / len(groups) if groups else 0
+        phrase = any(matches_term(title, normalized_term(term)) for term in topic.get("keywords", topic.get("queries", [])))
+        score = sum(hit["weight"] for hit in hits)
+        if excluded or not hits:
+            confidence = "low"
+        elif groups:
+            confidence = "high" if coverage >= 0.8 or phrase else "medium" if coverage >= 0.5 else "low"
+        else:
+            confidence = "high" if phrase or score >= 6 else "medium" if score >= 1 else "low"
+        entry = {"label": topic.get("label", topic.get("domain_name", key)), "score": score, "confidence": confidence,
+                 "evidence": grouped if groups else [hits], "matched_keywords": hits, "excluded_keywords": excluded, "rule_version": "weighted_topics_v2"}
+        all_labels[key] = entry
+        if confidence == "high":
+            labels[key] = entry
+    paper.metadata.update(directions=list(labels), classification=all_labels,
+                          suggested_directions=[key for key, entry in all_labels.items() if entry["confidence"] == "medium"],
+                          relevance_score=max((entry["score"] for entry in labels.values()), default=0), classification_method="weighted_topics_v2")
+    paper.classification = all_labels
     return labels
+
+
+def normalized_term(term):
+    return " ".join(re.findall(r"\w+\*?", term.lower()))
 
 
 def security_score(item: dict, topics: dict | None = None) -> float:

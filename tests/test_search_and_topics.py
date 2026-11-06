@@ -88,10 +88,14 @@ class SearchTests(unittest.TestCase):
                   Paper("Neural security", "Crossref", year=2026, doi="10.1/test", abstract="Complete", pdf_url="https://example.org/test.pdf"),
                   Paper("Neural Security: extended version", "OpenAlex", doi="10.1/test", citations=2)]
         result = deduplicate(papers)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(set(result[0].metadata["sources"]), {"arXiv", "Crossref", "OpenAlex"})
-        self.assertEqual(len(result[0].metadata["pdf_urls"]), 2)
-        self.assertEqual(result[0].metadata["arxiv_id"], "a")
+        self.assertEqual(len(result), 2)
+        preprint = next(p for p in result if p.metadata.get("arxiv_id") == "a")
+        published = next(p for p in result if p.doi == "10.1/test")
+        self.assertEqual(set(published.metadata["sources"]), {"Crossref", "OpenAlex"})
+        self.assertEqual(preprint.year, 2025)
+        self.assertEqual(published.year, 2026)
+        self.assertEqual(len(published.versions), 2)
+        self.assertEqual({preprint.pdf_url, published.pdf_url}, {"https://arxiv.org/pdf/a", "https://example.org/test.pdf"})
 
     def test_conflicting_dois_stay_distinct(self):
         self.assertEqual(len(deduplicate([Paper("Same title", "a", doi="10.1/a"), Paper("Same title", "b", doi="10.1/b")])), 2)

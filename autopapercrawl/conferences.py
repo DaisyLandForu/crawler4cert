@@ -20,14 +20,15 @@ def conference_record(item: dict) -> Paper | None:
     conf = str(item.get("conf") or "")
     year_match = re.search(r"(\d{4})$", conf)
     pdf_urls = [url.strip() for url in str(item.get("pdf_url") or "").split(",") if url.strip()]
-    authors = item.get("authors") or []
+    authors = item.get("authors") or item.get("author") or []
     if isinstance(authors, str):
         authors = [part.strip() for part in authors.split(",") if part.strip()]
     return Paper(title=title, source="paperCrawler", authors=authors,
                  year=int(year_match.group(1)) if year_match else None,
                  doi=normalize_doi(item["doi"]) if item.get("doi") else None, abstract=item.get("abstract") or None,
                  pdf_url=pdf_urls[0] if pdf_urls else None, oa_status="open" if pdf_urls else None,
-                 metadata={"conference": conf, "pdf_urls": pdf_urls, "sources": ["paperCrawler"], "publication_type": "conference"})
+                 citations=item.get("citation_count") or item.get("citations"), code_url=item.get("code_url"), categories=item.get("categories") or [],
+                 metadata={"raw_records": [{"source": "papercrawler", "record": item}], "conference": conf, "pdf_urls": pdf_urls, "sources": ["paperCrawler"], "publication_type": "conference"})
 
 
 def load_conference_file(path: Path) -> list[Paper]:

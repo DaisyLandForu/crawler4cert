@@ -152,6 +152,9 @@ def paper_to_target(paper: Paper) -> PaperTarget:
         metadata["year"] = paper.year
     if paper.abstract:
         metadata["abstract"] = paper.abstract
+    for field in ("arxiv_id", "dblp_id", "code_url", "affiliations", "categories", "concepts", "versions", "keywords"):
+        if getattr(paper, field):
+            metadata[field] = getattr(paper, field)
     return PaperTarget(
         title=paper.title,
         doi=normalize_doi(paper.doi),

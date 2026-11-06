@@ -20,7 +20,13 @@ from scripts.security_pipeline import main
 from autopapercrawl.conferences import crawl_conferences
 
 
-PDF = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n"
+from io import BytesIO
+from pypdf import PdfWriter
+_pdf_buffer = BytesIO()
+_pdf_writer = PdfWriter()
+_pdf_writer.add_blank_page(width=100, height=100)
+_pdf_writer.write(_pdf_buffer)
+PDF = _pdf_buffer.getvalue()
 
 
 class Handler(BaseHTTPRequestHandler):

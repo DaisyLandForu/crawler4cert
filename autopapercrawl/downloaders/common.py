@@ -50,6 +50,10 @@ class DownloadResult:
     page_url: str | None = None
     pdf_url: str | None = None
     attempts: list[dict[str, Any]] = field(default_factory=list)
+    sha256: str | None = None
+    pages: int | None = None
+    validation: str | None = None
+    duplicate_of: str | None = None
 
     @property
     def outcome(self) -> str:
@@ -76,6 +80,10 @@ class DownloadResult:
             "bytes": self.bytes,
             "outcome": self.outcome,
             "attempts": self.attempts,
+            "sha256": self.sha256,
+            "pages": self.pages,
+            "validation": self.validation,
+            "duplicate_of": self.duplicate_of,
         }
 
 
@@ -120,13 +128,11 @@ def title_keyphrase_slug(title: str, *, max_words: int = 6, max_len: int = 64) -
 
 
 def ensure_pdf_bytes(path: Path) -> bool:
+    from ..pdf_validation import inspect_pdf
     try:
-        with path.open("rb") as handle:
-            if handle.read(5) != b"%PDF-":
-                return False
-            handle.seek(max(0, path.stat().st_size - 65536))
-            return b"%%EOF" in handle.read()
-    except OSError:
+        inspect_pdf(path)
+        return True
+    except (OSError, ValueError):
         return False
 
 

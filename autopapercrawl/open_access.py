@@ -11,6 +11,7 @@ from urllib.parse import quote, urljoin, urlparse
 from .downloaders.common import DownloadResult, PaperTarget, safe_filename, ensure_pdf_bytes
 from .downloaders.pdf_url import download_pdf_url, target_pdf_url
 from .http import HttpClient, urlencode
+from .pdf_validation import inspect_pdf, DEFAULT_MAX_BYTES
 from .search import paper_from_openalex, search_arxiv
 
 
@@ -113,7 +114,12 @@ def resolve_arxiv_title_urls(target: PaperTarget, client: HttpClient, attempts: 
                 wanted = normalize_title(target.title)
                 for paper in candidates:
                     got = normalize_title(paper.title)
-                    if wanted == got or SequenceMatcher(None, wanted, got).ratio() >= 0.96:
+                    authors = target.metadata.get("authors") or []
+                    shared_author = bool({normalize_title(author) for author in authors} & {normalize_title(author) for author in paper.authors})
+                    year = target.metadata.get("year")
+                    compatible_year = not year or not paper.year or abs(int(year) - paper.year) <= 2
+                    compatible_doi = not target.doi or not paper.doi or target.doi.lower() == paper.doi.lower()
+                    if compatible_year and compatible_doi and (wanted == got or (shared_author and SequenceMatcher(None, wanted, got).ratio() >= 0.96)):
                         urls.append(paper.pdf_url)
                 attempts.append({"stage": "arxiv_title_lookup", "status": "ok"})
             except Exception as exc:
@@ -128,11 +134,12 @@ def normalize_title(value: str) -> str:
 def download_public_pdf(
     target: PaperTarget, pdf_dir: Path, client: HttpClient, *, email: str | None = None,
     lookup: bool = True, retries: int = 2, sleep_seconds: float = 3.0,
+    max_bytes: int = DEFAULT_MAX_BYTES,
 ) -> DownloadResult:
     existing = pdf_dir / safe_filename(target)
-    if ensure_pdf_bytes(existing):
+    if ensure_pdf_bytes(existing) and existing.stat().st_size <= max_bytes:
         return DownloadResult(status="exists", provider="open_access", title=target.title, doi=target.doi,
-                              path=str(existing), bytes=existing.stat().st_size)
+                              path=str(existing), **inspect_pdf(existing))
     attempts: list[dict] = []
     tried: set[str] = set()
     failures: list[DownloadResult] = []
@@ -142,8 +149,9 @@ def download_public_pdf(
             if url in tried:
                 continue
             tried.add(url)
+            client.wait(url)
             result = download_pdf_url(replace(target, pdf_url=url), pdf_dir, timeout=client.timeout_seconds,
-                                      retries=retries, sleep_seconds=sleep_seconds, provider_name="open_access")
+                                      retries=retries, sleep_seconds=sleep_seconds, provider_name="open_access", max_bytes=max_bytes)
             attempts.append({"stage": "pdf_download", "url": url, "status": result.status, "reason": result.reason})
             if result.status in {"downloaded", "exists"}:
                 result.attempts = attempts

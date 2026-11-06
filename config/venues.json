@@ -1,0 +1,1538 @@
+{
+  "schema_version": 1,
+  "venues": [
+    {
+      "venue_id": "sp",
+      "name": "IEEE Symposium on Security and Privacy",
+      "abbreviation": "IEEE S&P",
+      "aliases": [
+        "IEEE Symposium on Security and Privacy",
+        "IEEE S&P",
+        "IEEE SP"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/sp",
+      "dblp_url": "https://dblp.org/db/conf/sp/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "ccs",
+      "name": "ACM SIGSAC Conference on Computer and Communications Security",
+      "abbreviation": "CCS",
+      "aliases": [
+        "ACM SIGSAC Conference on Computer and Communications Security",
+        "ACM CCS",
+        "CCS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/ccs",
+      "dblp_url": "https://dblp.org/db/conf/ccs/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "usenix",
+      "name": "USENIX Security Symposium",
+      "abbreviation": "USENIX Security",
+      "aliases": [
+        "USENIX Security Symposium",
+        "USENIX Security"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/uss",
+      "dblp_url": "https://dblp.org/db/conf/uss/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "ndss",
+      "name": "Network and Distributed System Security Symposium",
+      "abbreviation": "NDSS",
+      "aliases": [
+        "Network and Distributed System Security Symposium",
+        "NDSS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/ndss",
+      "dblp_url": "https://dblp.org/db/conf/ndss/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "acsac",
+      "name": "Annual Computer Security Applications Conference",
+      "abbreviation": "ACSAC",
+      "aliases": [
+        "ACSAC"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/acsac",
+      "dblp_url": "https://dblp.org/db/conf/acsac/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "raid",
+      "name": "Research in Attacks Intrusions and Defenses",
+      "abbreviation": "RAID",
+      "aliases": [
+        "RAID"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/raid",
+      "dblp_url": "https://dblp.org/db/conf/raid/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "esorics",
+      "name": "European Symposium on Research in Computer Security",
+      "abbreviation": "ESORICS",
+      "aliases": [
+        "ESORICS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/esorics",
+      "dblp_url": "https://dblp.org/db/conf/esorics/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "eurosp",
+      "name": "IEEE European Symposium on Security and Privacy",
+      "abbreviation": "EuroS&P",
+      "aliases": [
+        "EuroS&P"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/eurosp",
+      "dblp_url": "https://dblp.org/db/conf/eurosp/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "asiaccs",
+      "name": "ACM Asia Conference on Computer and Communications Security",
+      "abbreviation": "AsiaCCS",
+      "aliases": [
+        "AsiaCCS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/asiaccs",
+      "dblp_url": "https://dblp.org/db/conf/asiaccs/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "pets",
+      "name": "Proceedings on Privacy Enhancing Technologies",
+      "abbreviation": "PETS",
+      "aliases": [
+        "PETS"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "journals/popets",
+      "dblp_url": "https://dblp.org/db/journals/popets/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "wisec",
+      "name": "ACM Conference on Security and Privacy in Wireless and Mobile Networks",
+      "abbreviation": "WiSec",
+      "aliases": [
+        "WiSec"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_security"
+      ],
+      "dblp_key": "conf/wisec",
+      "dblp_url": "https://dblp.org/db/conf/wisec/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "nips",
+      "name": "Advances in Neural Information Processing Systems",
+      "abbreviation": "NeurIPS",
+      "aliases": [
+        "Advances in Neural Information Processing Systems",
+        "NeurIPS",
+        "NIPS",
+        "NIPS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/nips",
+      "dblp_url": "https://dblp.org/db/conf/nips/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "icml",
+      "name": "International Conference on Machine Learning",
+      "abbreviation": "ICML",
+      "aliases": [
+        "International Conference on Machine Learning",
+        "ICML"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/icml",
+      "dblp_url": "https://dblp.org/db/conf/icml/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "iclr",
+      "name": "International Conference on Learning Representations",
+      "abbreviation": "ICLR",
+      "aliases": [
+        "International Conference on Learning Representations",
+        "ICLR"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/iclr",
+      "dblp_url": "https://dblp.org/db/conf/iclr/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "aaai",
+      "name": "AAAI Conference on Artificial Intelligence",
+      "abbreviation": "AAAI",
+      "aliases": [
+        "AAAI"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/aaai",
+      "dblp_url": "https://dblp.org/db/conf/aaai/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "ijcai",
+      "name": "International Joint Conference on Artificial Intelligence",
+      "abbreviation": "IJCAI",
+      "aliases": [
+        "IJCAI"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/ijcai",
+      "dblp_url": "https://dblp.org/db/conf/ijcai/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "kdd",
+      "name": "ACM SIGKDD Conference on Knowledge Discovery and Data Mining",
+      "abbreviation": "KDD",
+      "aliases": [
+        "KDD"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "conf/kdd",
+      "dblp_url": "https://dblp.org/db/conf/kdd/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "www",
+      "name": "The Web Conference",
+      "abbreviation": "WWW",
+      "aliases": [
+        "WWW",
+        "Proceedings of the ACM on Web Conference",
+        "International World Wide Web Conference"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "conf/www",
+      "dblp_url": "https://dblp.org/db/conf/www/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "jmlr",
+      "name": "Journal of Machine Learning Research",
+      "abbreviation": "JMLR",
+      "aliases": [
+        "JMLR"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "journals/jmlr",
+      "dblp_url": "https://dblp.org/db/journals/jmlr/index.html",
+      "openalex_source_ids": [],
+      "issn": [
+        "1532-4435",
+        "1533-7928"
+      ],
+      "isbn": [],
+      "official_url": "https://www.jmlr.org/",
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tpami",
+      "name": "IEEE Transactions on Pattern Analysis and Machine Intelligence",
+      "abbreviation": "TPAMI",
+      "aliases": [
+        "TPAMI"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "journals/pami",
+      "dblp_url": "https://dblp.org/db/journals/pami/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tnnls",
+      "name": "IEEE Transactions on Neural Networks and Learning Systems",
+      "abbreviation": "TNNLS",
+      "aliases": [
+        "TNNLS"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "ai_ml"
+      ],
+      "dblp_key": "journals/tnn",
+      "dblp_url": "https://dblp.org/db/journals/tnn/index.html",
+      "openalex_source_ids": [],
+      "issn": [
+        "2162-237X",
+        "2162-2388"
+      ],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "cvpr",
+      "name": "IEEE/CVF Conference on Computer Vision and Pattern Recognition",
+      "abbreviation": "CVPR",
+      "aliases": [
+        "IEEE/CVF Conference on Computer Vision and Pattern Recognition",
+        "CVPR"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "conf/cvpr",
+      "dblp_url": "https://dblp.org/db/conf/cvpr/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "iccv",
+      "name": "IEEE/CVF International Conference on Computer Vision",
+      "abbreviation": "ICCV",
+      "aliases": [
+        "ICCV"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "conf/iccv",
+      "dblp_url": "https://dblp.org/db/conf/iccv/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "eccv",
+      "name": "European Conference on Computer Vision",
+      "abbreviation": "ECCV",
+      "aliases": [
+        "ECCV"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "conf/eccv",
+      "dblp_url": "https://dblp.org/db/conf/eccv/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "mm",
+      "name": "ACM International Conference on Multimedia",
+      "abbreviation": "ACM MM",
+      "aliases": [
+        "ACM MM"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "conf/mm",
+      "dblp_url": "https://dblp.org/db/conf/mm/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "ijcv",
+      "name": "International Journal of Computer Vision",
+      "abbreviation": "IJCV",
+      "aliases": [
+        "IJCV"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "computer_vision"
+      ],
+      "dblp_key": "journals/ijcv",
+      "dblp_url": "https://dblp.org/db/journals/ijcv/index.html",
+      "openalex_source_ids": [],
+      "issn": [
+        "0920-5691",
+        "1573-1405"
+      ],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "acl",
+      "name": "Annual Meeting of the Association for Computational Linguistics",
+      "abbreviation": "ACL",
+      "aliases": [
+        "ACL"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "nlp"
+      ],
+      "dblp_key": "conf/acl",
+      "dblp_url": "https://dblp.org/db/conf/acl/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "emnlp",
+      "name": "Conference on Empirical Methods in Natural Language Processing",
+      "abbreviation": "EMNLP",
+      "aliases": [
+        "EMNLP"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "nlp"
+      ],
+      "dblp_key": "conf/emnlp",
+      "dblp_url": "https://dblp.org/db/conf/emnlp/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "naacl",
+      "name": "North American Chapter of the Association for Computational Linguistics",
+      "abbreviation": "NAACL",
+      "aliases": [
+        "NAACL"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "nlp"
+      ],
+      "dblp_key": "conf/naacl",
+      "dblp_url": "https://dblp.org/db/conf/naacl/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "coling",
+      "name": "International Conference on Computational Linguistics",
+      "abbreviation": "COLING",
+      "aliases": [
+        "COLING"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "nlp"
+      ],
+      "dblp_key": "conf/coling",
+      "dblp_url": "https://dblp.org/db/conf/coling/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tacl",
+      "name": "Transactions of the Association for Computational Linguistics",
+      "abbreviation": "TACL",
+      "aliases": [
+        "TACL"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "nlp"
+      ],
+      "dblp_key": "journals/tacl",
+      "dblp_url": "https://dblp.org/db/journals/tacl/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "icse",
+      "name": "International Conference on Software Engineering",
+      "abbreviation": "ICSE",
+      "aliases": [
+        "International Conference on Software Engineering",
+        "ICSE"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "conf/icse",
+      "dblp_url": "https://dblp.org/db/conf/icse/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "fse",
+      "name": "ACM International Conference on the Foundations of Software Engineering",
+      "abbreviation": "FSE",
+      "aliases": [
+        "FSE",
+        "ESEC/FSE",
+        "Foundations of Software Engineering"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "conf/sigsoft",
+      "dblp_url": "https://dblp.org/db/conf/sigsoft/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "ase",
+      "name": "IEEE/ACM International Conference on Automated Software Engineering",
+      "abbreviation": "ASE",
+      "aliases": [
+        "ASE"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "conf/kbse",
+      "dblp_url": "https://dblp.org/db/conf/kbse/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "issta",
+      "name": "International Symposium on Software Testing and Analysis",
+      "abbreviation": "ISSTA",
+      "aliases": [
+        "International Symposium on Software Testing and Analysis",
+        "ISSTA"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "conf/issta",
+      "dblp_url": "https://dblp.org/db/conf/issta/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tse",
+      "name": "IEEE Transactions on Software Engineering",
+      "abbreviation": "TSE",
+      "aliases": [
+        "TSE"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "journals/tse",
+      "dblp_url": "https://dblp.org/db/journals/tse/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tosem",
+      "name": "ACM Transactions on Software Engineering and Methodology",
+      "abbreviation": "TOSEM",
+      "aliases": [
+        "TOSEM"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "software_engineering"
+      ],
+      "dblp_key": "journals/tosem",
+      "dblp_url": "https://dblp.org/db/journals/tosem/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "sigcomm",
+      "name": "ACM SIGCOMM Conference",
+      "abbreviation": "SIGCOMM",
+      "aliases": [
+        "SIGCOMM"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_networks"
+      ],
+      "dblp_key": "conf/sigcomm",
+      "dblp_url": "https://dblp.org/db/conf/sigcomm/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "nsdi",
+      "name": "USENIX Symposium on Networked Systems Design and Implementation",
+      "abbreviation": "NSDI",
+      "aliases": [
+        "NSDI"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "distributed_systems"
+      ],
+      "dblp_key": "conf/nsdi",
+      "dblp_url": "https://dblp.org/db/conf/nsdi/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "sosp",
+      "name": "ACM Symposium on Operating Systems Principles",
+      "abbreviation": "SOSP",
+      "aliases": [
+        "SOSP"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "distributed_systems"
+      ],
+      "dblp_key": "conf/sosp",
+      "dblp_url": "https://dblp.org/db/conf/sosp/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "osdi",
+      "name": "USENIX Symposium on Operating Systems Design and Implementation",
+      "abbreviation": "OSDI",
+      "aliases": [
+        "OSDI"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "distributed_systems"
+      ],
+      "dblp_key": "conf/osdi",
+      "dblp_url": "https://dblp.org/db/conf/osdi/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "atc",
+      "name": "USENIX Annual Technical Conference",
+      "abbreviation": "USENIX ATC",
+      "aliases": [
+        "USENIX ATC"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "distributed_systems"
+      ],
+      "dblp_key": "conf/usenix",
+      "dblp_url": "https://dblp.org/db/conf/usenix/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "imc",
+      "name": "ACM Internet Measurement Conference",
+      "abbreviation": "IMC",
+      "aliases": [
+        "IMC"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_networks"
+      ],
+      "dblp_key": "conf/imc",
+      "dblp_url": "https://dblp.org/db/conf/imc/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "mobicom",
+      "name": "International Conference on Mobile Computing and Networking",
+      "abbreviation": "MobiCom",
+      "aliases": [
+        "MobiCom"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_networks"
+      ],
+      "dblp_key": "conf/mobicom",
+      "dblp_url": "https://dblp.org/db/conf/mobicom/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "infocom",
+      "name": "IEEE International Conference on Computer Communications",
+      "abbreviation": "INFOCOM",
+      "aliases": [
+        "INFOCOM"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "computer_networks"
+      ],
+      "dblp_key": "conf/infocom",
+      "dblp_url": "https://dblp.org/db/conf/infocom/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "sigmod",
+      "name": "ACM SIGMOD International Conference on Management of Data",
+      "abbreviation": "SIGMOD",
+      "aliases": [
+        "SIGMOD"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "conf/sigmod",
+      "dblp_url": "https://dblp.org/db/conf/sigmod/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "vldb",
+      "name": "International Conference on Very Large Data Bases",
+      "abbreviation": "VLDB",
+      "aliases": [
+        "VLDB"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "conf/vldb",
+      "dblp_url": "https://dblp.org/db/conf/vldb/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "icde",
+      "name": "IEEE International Conference on Data Engineering",
+      "abbreviation": "ICDE",
+      "aliases": [
+        "ICDE"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "conf/icde",
+      "dblp_url": "https://dblp.org/db/conf/icde/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "pods",
+      "name": "ACM Symposium on Principles of Database Systems",
+      "abbreviation": "PODS",
+      "aliases": [
+        "PODS"
+      ],
+      "venue_type": "conference",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "conf/pods",
+      "dblp_url": "https://dblp.org/db/conf/pods/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tods",
+      "name": "ACM Transactions on Database Systems",
+      "abbreviation": "TODS",
+      "aliases": [
+        "TODS"
+      ],
+      "venue_type": "journal",
+      "research_domains": [
+        "databases"
+      ],
+      "dblp_key": "journals/tods",
+      "dblp_url": "https://dblp.org/db/journals/tods/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tdsc",
+      "name": "IEEE Transactions on Dependable and Secure Computing",
+      "abbreviation": "TDSC",
+      "aliases": [
+        "IEEE Transactions on Dependable and Secure Computing",
+        "TDSC"
+      ],
+      "venue_type": "journal",
+      "research_domains": [],
+      "dblp_key": "journals/tdsc",
+      "dblp_url": "https://dblp.org/db/journals/tdsc/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "tifs",
+      "name": "IEEE Transactions on Information Forensics and Security",
+      "abbreviation": "TIFS",
+      "aliases": [
+        "IEEE Transactions on Information Forensics and Security",
+        "TIFS"
+      ],
+      "venue_type": "journal",
+      "research_domains": [],
+      "dblp_key": "journals/tifs",
+      "dblp_url": "https://dblp.org/db/journals/tifs/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "comnet",
+      "name": "Computer Networks",
+      "abbreviation": "Computer Networks",
+      "aliases": [
+        "Computer Networks"
+      ],
+      "venue_type": "journal",
+      "research_domains": [],
+      "dblp_key": "journals/cn",
+      "dblp_url": "https://dblp.org/db/journals/cn/index.html",
+      "openalex_source_ids": [],
+      "issn": [
+        "1389-1286"
+      ],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "cose",
+      "name": "Computers & Security",
+      "abbreviation": "Computers and Security",
+      "aliases": [
+        "Computers & Security",
+        "Computers and Security"
+      ],
+      "venue_type": "journal",
+      "research_domains": [],
+      "dblp_key": "journals/cose",
+      "dblp_url": "https://dblp.org/db/journals/cose/index.html",
+      "openalex_source_ids": [],
+      "issn": [
+        "0167-4048"
+      ],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "jisa",
+      "name": "Journal of Information Security and Applications",
+      "abbreviation": "Journal of Information Security and Applications",
+      "aliases": [
+        "Journal of Information Security and Applications"
+      ],
+      "venue_type": "journal",
+      "research_domains": [],
+      "dblp_key": "journals/ias",
+      "dblp_url": "https://dblp.org/db/journals/ias/index.html",
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "dblp",
+        "openalex",
+        "crossref"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    },
+    {
+      "venue_id": "arxiv",
+      "name": "arXiv",
+      "abbreviation": "arXiv preprint",
+      "aliases": [
+        "arXiv",
+        "arXiv preprint"
+      ],
+      "venue_type": "preprint",
+      "research_domains": [],
+      "dblp_key": null,
+      "dblp_url": null,
+      "openalex_source_ids": [],
+      "issn": [],
+      "isbn": [],
+      "official_url": null,
+      "supported_years": [],
+      "adapters": [
+        "arxiv"
+      ],
+      "ranking_tags": [],
+      "capability_status": "configured",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "本地论文增量采集示例",
+  "directions": ["ai_security"],
+  "venues": [],
+  "sources": ["crossref", "arxiv", "dblp"],
+  "mode": "standard",
+  "max_results": 100,
+  "per_query": 30,
+  "incremental": true,
+  "overlap_days": 7,
+  "download_pdfs": false,
+  "enrich_metadata": true
+}

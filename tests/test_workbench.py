@@ -16,7 +16,13 @@ from autopapercrawl.venues import venue_matches
 from autopapercrawl.web import handler_class
 from autopapercrawl.workbench import Workbench, export_csv, export_html
 
-PDF = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n%%EOF\n"
+from io import BytesIO
+from pypdf import PdfWriter
+_pdf_buffer = BytesIO()
+_pdf_writer = PdfWriter()
+_pdf_writer.add_blank_page(width=100, height=100)
+_pdf_writer.write(_pdf_buffer)
+PDF = _pdf_buffer.getvalue()
 
 
 def finished(service, job):
@@ -75,6 +81,27 @@ class WorkbenchTests(unittest.TestCase):
         self.service.update_download(identifier, {"status": "downloaded", "outcome": "success", "path": str(self.root / "missing.pdf")})
         self.assertEqual(self.service.list_papers()["items"][0]["status_label"], "请求失败")
 
+    def test_download_archives_each_actual_direction_including_custom_and_unclassified(self):
+        custom = self.service.registry.save("domains", {"domain_name": "威胁分析", "keywords": ["threat analysis"]})
+        self.service.topics = self.service.registry.topics()
+        directions = ["encrypted_traffic", custom["domain_id"]]
+        assigned, unclassified = self.service.store([
+            Paper("Cross-domain traffic threat analysis", "test", metadata={"directions": directions}),
+            Paper("Unconfirmed research", "test", metadata={"directions": []}),
+        ])
+        source = self.root / "cached.pdf"
+        source.write_bytes(PDF)
+        for identifier in (assigned, unclassified):
+            self.service.update_download(identifier, {"status": "downloaded", "outcome": "success", "path": str(source)})
+        output = self.root / "chosen"
+        job = finished(self.service, self.service.start_download([assigned, unclassified], str(output)))
+        self.assertEqual(job["pdf_success"], 2)
+        self.assertEqual(len(list((output / "pdfs").glob("*.pdf"))), 2)
+        expected = Path(next(row["path"] for row in job["results"] if row["id"] == assigned)).name
+        for direction in directions:
+            self.assertEqual([path.name for path in (output / direction / "pdfs").glob("*.pdf")], [expected])
+        self.assertFalse((output / "ai_security").exists())
+
     def test_archive_error_does_not_hide_a_saved_pdf(self):
         identifier = self.store()
         source = self.root / "cached.pdf"
@@ -110,7 +137,9 @@ class WorkbenchTests(unittest.TestCase):
             job = finished(self.service, self.service.start_search({"title": "traffic", "venues": ["comnet"], "directions": ["encrypted_traffic"], "max_results": 1}))
         self.assertEqual(len(job["paper_ids"]), 1)
         self.assertEqual(search.call_args.kwargs["venue"], "comnet")
-        self.assertNotIn("arxiv", search.call_args.kwargs["sources"])
+        self.assertIn("arxiv", search.call_args.kwargs["sources"])
+        record = self.service.records(job["paper_ids"])[0]
+        self.assertEqual(record["metadata"]["venue_matches"]["comnet"]["status"], "probable")
         self.assertEqual(self.service.list_papers({"job_id": job["id"]})["total"], 1)
 
     def test_source_errors_remain_visible_in_job(self):
@@ -121,6 +150,23 @@ class WorkbenchTests(unittest.TestCase):
             job = finished(self.service, self.service.start_search({"title": "test", "directions": []}))
         self.assertEqual(job["warnings"], 1)
         self.assertIn("来源请求失败", job["message"])
+
+    def test_search_conditions_preserve_labels_and_actual_queries(self):
+        record = {"domain_id": "custom_threats", "domain_name": "原始方向名称", "keywords": ["original keyword"]}
+        self.service.registry.save("domains", record)
+        self.service.topics = self.service.registry.topics()
+        with patch.object(self.service.executor, "submit"):
+            job = self.service.start_search({"directions": ["custom_threats"], "venues": ["ccs"], "mode": "comprehensive", "sources": ["crossref"]})
+        self.service.registry.save("domains", {**record, "domain_name": "后来改名", "keywords": ["changed keyword"]})
+        self.service.topics = self.service.registry.topics()
+        snapshot = self.service.get_job(job["id"])["search_conditions"]
+        self.assertEqual(snapshot["directions"], [{"id": "custom_threats", "label": "原始方向名称"}])
+        self.assertEqual(snapshot["queries"], ["original keyword"])
+        self.assertNotEqual(snapshot["venues"][0]["label"], "ccs")
+        # During automatic PDF download, the task's working options can change.
+        job["options"] = {"ids": [], "directory": "chosen"}
+        self.service.save_job(job)
+        self.assertEqual(self.service.get_job(job["id"])["search_conditions"], snapshot)
 
     def test_invalid_selection_and_years_rejected(self):
         with self.assertRaises(ValueError):
@@ -180,6 +226,36 @@ class WebTests(unittest.TestCase):
         self.assertEqual(requests.get(self.url + "/api/pdf/unregistered", timeout=3).status_code, 404)
         response = requests.get(self.url + "/api/export?format=csv", timeout=3)
         self.assertTrue(response.content.startswith(b"\xef\xbb\xbf"))
+
+    def post(self, endpoint, data):
+        return requests.post(self.url + endpoint, headers={"X-Workbench-Token": "test-token", "Origin": self.url}, json=data, timeout=5)
+
+    def test_registry_create_update_delete_and_validation(self):
+        record = {"domain_id": "custom_physics", "domain_name": "Physics", "keywords": ["quantum measurement"]}
+        self.assertEqual(self.post("/api/registry/save", {"kind": "domains", "record": record}).status_code, 200)
+        self.assertIn("custom_physics", requests.get(self.url + "/api/config", timeout=3).json()["topics"])
+        self.assertEqual(self.post("/api/registry/save", {"kind": "domains", "record": {**record, "keywords": []}}).status_code, 400)
+        self.assertEqual(self.post("/api/registry/delete", {"kind": "domains", "id": "custom_physics"}).status_code, 200)
+        self.assertNotIn("custom_physics", requests.get(self.url + "/api/config", timeout=3).json()["topics"])
+
+    def test_plan_capabilities_and_selected_complete_exports(self):
+        response = self.post("/api/plan", {"directions": ["ai_security"], "mode": "comprehensive"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["query_count"], 8)
+        self.assertEqual(len(requests.get(self.url + "/api/capabilities", timeout=3).json()["venues"]), 56)
+        ids = self.service.store([Paper("One", "test", year=2025, authors=["Alice"]), Paper("Two", "test", year=2025)])
+        response = requests.get(self.url + "/api/export?format=json&ids=" + ids[0], timeout=3)
+        self.assertEqual(len(response.json()), 1)
+        self.assertEqual(response.json()[0]["authors"], ["Alice"])
+        response = requests.get(self.url + "/api/export?format=bib&ids=" + ids[0], timeout=3)
+        self.assertIn("@misc{", response.text)
+        self.assertNotIn("Two", response.text)
+
+    def test_bulk_delete_keeps_files_and_reclassify_survives(self):
+        identifier = self.service.store([Paper("Encrypted traffic classification", "test", year=2025)])[0]
+        self.assertEqual(self.post("/api/library/reclassify", {"ids": [identifier]}).json()["updated"], 1)
+        self.assertEqual(self.post("/api/library/delete", {"ids": [identifier]}).json()["deleted"], 1)
+        self.assertEqual(self.service.list_papers()["total"], 0)
 
 
 class VenueMetadataTests(unittest.TestCase):

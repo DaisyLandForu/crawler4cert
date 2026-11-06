@@ -1,11 +1,25 @@
 {
   "max_results": 100,
   "per_query": 30,
-  "query_limit": 2,
+  "query_limit": 0,
   "page_size": 50,
   "timeout": 30,
   "retries": 1,
   "delay": 3,
-  "sources": ["openalex", "crossref", "arxiv"],
-  "download_dir": "downloads/security_research"
+  "sources": [
+    "openalex",
+    "crossref",
+    "arxiv",
+    "dblp"
+  ],
+  "download_dir": "downloads/security_research",
+  "mode": "standard",
+  "default_domains": [
+    "satellite_security",
+    "vulnerability_detection",
+    "encrypted_traffic",
+    "ai_security"
+  ],
+  "overlap_days": 7,
+  "max_pdf_mb": 100
 }

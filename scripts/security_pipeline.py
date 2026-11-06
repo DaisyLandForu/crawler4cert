@@ -83,14 +83,13 @@ def read_json(path: Path, default):
 
 
 def paper_from_record(item: dict) -> Paper:
-    metadata = dict(item.get("metadata") or {})
+    fields = {key: item[key] for key in Paper.__dataclass_fields__ if key in item}
+    fields.update(title=item.get("title") or "", source=item.get("source") or "local", year=int(item["year"]) if item.get("year") else None)
+    fields["metadata"] = {**(item.get("metadata") or {})}
     for field in ("directions", "classification", "relevance_score"):
         if field in item:
-            metadata[field] = item[field]
-    return Paper(title=item.get("title") or "", source=item.get("source") or "local",
-                 authors=item.get("authors") or [], year=int(item["year"]) if item.get("year") else None,
-                 doi=item.get("doi"), url=item.get("url"), abstract=item.get("abstract"),
-                 citations=item.get("citations"), pdf_url=item.get("pdf_url"), oa_status=item.get("oa_status"), metadata=metadata)
+            fields["metadata"][field] = item[field]
+    return Paper(**fields)
 
 
 def export_record(paper: Paper, downloads: dict | None = None) -> dict:
@@ -102,20 +101,18 @@ def export_record(paper: Paper, downloads: dict | None = None) -> dict:
 
 
 def save_catalog(directory: Path, papers: list[Paper], downloads: dict | None = None):
+    from autopapercrawl.exports import export_csv, export_bibtex
     records = [export_record(paper, downloads) for paper in papers]
     save_json(directory / "papers.json", records)
     save_json(directory / "papers_table.json", records)
-    fields = ["title", "year", "directions", "source", "doi", "citations", "abstract", "pdf_url", "url", "download_status", "local_pdf"]
-    with (directory / "papers.csv").open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
-        writer.writeheader()
-        for record in records:
-            row = {field: record.get(field) for field in fields}
-            row["directions"] = ";".join(record["directions"])
-            result = record.get("download") or {}
-            row["download_status"] = result.get("status")
-            row["local_pdf"] = result.get("path")
-            writer.writerow(row)
+    for record in records:
+        record["venues"] = [record.get("venue")] if record.get("venue") else record.get("metadata", {}).get("venues", [])
+        result = record.get("download") or {}
+        record["download_status"] = result.get("status")
+        record["local_path"] = result.get("path")
+        record["status_label"] = result.get("status")
+    (directory / "papers.csv").write_bytes(export_csv(records))
+    (directory / "papers.bib").write_bytes(export_bibtex(records))
 
 
 def link_pdf(source: Path, destination: Path):
