@@ -2,11 +2,11 @@
 
 基于 [Shirmer/AutoPaperCrawl](https://github.com/Shirmer/AutoPaperCrawl) 改造。网络安全是重点预设，工具支持其他领域；保留已有中文前端和 Python 包名 `autopapercrawl`。所有文件保存在个人电脑，不依赖云端平台、MCP、向量数据库或内网同步。
 
-[English](README.md) · [审查和实施记录](docs/implementation.md) · [验收与交付报告](docs/delivery.zh-CN.md) · [Venue/Adapter 能力表](docs/capabilities.md)
+[项目首页](README.md) · [审查和实施记录](docs/implementation.md) · [验收与交付报告](docs/delivery.zh-CN.md) · [Venue/Adapter 能力表](docs/capabilities.md)
 
 ## 1. 安装与 Windows 启动
 
-**无需安装 Conda。** 推荐使用 Python 3.11（已验证版本），首次在项目目录创建本地虚拟环境并安装依赖：
+推荐使用 Python 3.11（已验证版本），首次在项目目录创建本地虚拟环境并安装依赖：
 
 ```powershell
 cd E:\crawler4cert
