@@ -240,3 +240,5 @@ dialog::backdrop { background: #20373e65; }
 
 .task-condition-block{margin:14px 0 10px}.task-condition-block h4{font-size:12px;margin:0 0 10px;font-weight:600}.task-conditions{display:grid;grid-template-columns:105px minmax(0,1fr);gap:8px 12px;margin:0;font-size:11px;line-height:1.8}.task-conditions dt{color:var(--muted)}.task-conditions dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.task-query-list{margin-top:12px;font-size:11px;color:#607d73}.task-query-list ul{max-height:180px;overflow-y:auto;padding-left:20px;line-height:2;color:#536c75}.task-condition-block>small{font-size:10px;color:var(--muted)}#detail-content .task-conditions{font-size:12px}#detail-content .task-condition-block h4{font-size:14px}
 @media(max-width:540px){.task-conditions{grid-template-columns:86px minmax(0,1fr);gap:7px 8px}}
+
+.task-condition-note{font-size:11px;color:#9b753e;background:#fcf7e9;border-radius:6px;padding:8px 10px;line-height:1.8}

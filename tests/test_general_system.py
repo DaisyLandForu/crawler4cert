@@ -242,8 +242,8 @@ class DatabaseAndWorkflowTests(unittest.TestCase):
         self.assertEqual(job["plan"]["entries"], full["entries"])
 
     def test_low_confidence_and_unconfirmed_arxiv_are_preserved(self):
-        paper = Paper("A crop analysis", "arXiv", year=2025, arxiv_id="2501.00001", abstract="Study of soil")
-        job = self.search([paper], directions=["ai_security"], venues=["sp"])
+        paper = Paper("QUIC attack analysis", "arXiv", year=2025, arxiv_id="2501.00001", abstract="Malicious traffic over QUIC")
+        job = self.search([paper], query="QUIC malicious traffic", directions=["ai_security"], venues=["sp"])
         records = self.service.records(job["paper_ids"])
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0]["metadata"]["review_confidence"], "low")

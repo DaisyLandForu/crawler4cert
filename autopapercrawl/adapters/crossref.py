@@ -49,7 +49,7 @@ def _search(
         params = {
             "query": query,
             "query.container-title": canonical(venue) if venue else None,
-            "query.title": title_filter,
+            "query.bibliographic": title_filter,
             "rows": min(page_size, max_results - len(papers), 100),
             "offset": offset,
             "filter": ",".join(filters) if filters else None,
@@ -57,7 +57,7 @@ def _search(
             # Without an ISSN, container-title is a relevance query, not an
             # exact filter. First recall matching proceedings; the merged pool
             # is sorted by date after checking its actual container title.
-            "sort": "relevance" if venue and not issn else {"newest": "published", "citations": "is-referenced-by-count"}.get(sort_by),
+            "sort": "relevance" if query or title_filter or (venue and not issn) else {"newest": "published", "citations": "is-referenced-by-count"}.get(sort_by),
             "order": "desc" if sort_by != "relevance" else None,
         }
         print(

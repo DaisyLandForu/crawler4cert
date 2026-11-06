@@ -278,7 +278,8 @@ class VenueMetadataTests(unittest.TestCase):
         search_crossref("traffic", 1, 2024, 2026, client, None, venue="comnet", title_filter="encrypted traffic")
         params = parse_qs(urlparse(client.urls[-1]).query)
         self.assertEqual(params["query.container-title"], ["Computer Networks"])
-        self.assertEqual(params["query.title"], ["encrypted traffic"])
+        self.assertEqual(params["query.bibliographic"], ["encrypted traffic"])
+        self.assertNotIn("query.title", params)
         self.assertIn("issn:1389-1286", params["filter"][0])
 
 

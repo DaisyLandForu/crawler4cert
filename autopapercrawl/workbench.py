@@ -22,6 +22,7 @@ from .database import migrate, index_record, sql_filter, backup_database
 from .identity import same_identity, identifiers, relate_versions
 from .adapters import ADAPTERS
 from .planning import build_plan
+from .relevance import query_match
 from .exports import export_csv as full_csv, export_json, export_bibtex
 from .pdf_validation import inspect_pdf
 from .open_access import download_public_pdf
@@ -298,6 +299,7 @@ class Workbench:
         job = {"id": identifier, "kind": kind, "status": "queued", "created": now(), "done": 0, "total": 0,
                "name": options.get("name") or ("论文检索" if kind == "search" else "PDF 下载"), "message": "等待处理", "options": options, "paper_ids": [], "diagnostics": [], "results": []}
         if kind == "search":
+            job["relevance_filter_version"] = "title_abstract_terms_v1"
             job["plan"] = self.preview_plan(options)
             entries = job["plan"]["entries"]
             job["search_conditions"] = {
@@ -408,7 +410,7 @@ class Workbench:
             raw_dir = self.root / "outputs" / "tasks" / job["id"]
             raw_dir.mkdir(parents=True, exist_ok=True)
             (raw_dir / "candidates.json").write_bytes(export_json([paper.as_dict() for paper in candidates]))
-            accepted, pending_venue = [], 0
+            accepted, pending_venue, unrelated, relevance_audit = [], 0, 0, []
             for paper in deduplicate(candidates):
                 if not in_year_range(paper.year, options["start_year"], options["end_year"]):
                     continue
@@ -416,6 +418,12 @@ class Workbench:
                 if published and published > publication_cutoff(options["end_year"]):
                     continue
                 classify_paper(paper, self.topics)
+                checks = [query_match(paper, query) for query in paper.metadata.get("queries", plan["queries"])]
+                paper.metadata["query_relevance"] = checks
+                relevance_audit.append({"key": paper.key, "title": paper.title, "checks": checks})
+                if not any(check["matched"] for check in checks):
+                    unrelated += 1
+                    continue
                 if options["title"] and normalized_text(options["title"]) not in normalized_text(paper.title):
                     continue
                 if options["venues"]:
@@ -428,8 +436,9 @@ class Workbench:
                         else:
                             continue
                 accepted.append(paper)
-            # Classification never discards records. The raw candidate archive
-            # also retains out-of-year, venue-mismatched and over-limit entries.
+            (raw_dir / "relevance_checks.json").write_bytes(export_json(relevance_audit))
+            # Raw candidates remain archived; only text-verified results enter
+            # the selected/downloadable result set.
             retained = accepted[:options["max_results"]]
             for paper in accepted:
                 levels = [entry["confidence"] for key, entry in paper.metadata["classification"].items() if not options["directions"] or key in options["directions"]]
@@ -440,6 +449,7 @@ class Workbench:
             job["duplicate_count"] = len(candidates) - job["deduplicated_count"]
             job["excluded_by_limit"] = max(0, len(accepted) - len(retained))
             job["venue_review_count"] = pending_venue
+            job["excluded_by_relevance"] = unrelated
             job["classification_counts"] = {level: sum(any(value["confidence"] == level for value in paper.metadata["classification"].values()) for paper in retained) for level in ("high", "medium", "low")}
             self.progress(job, done=index + 1, message=f"已召回 {len(candidates)} 条，入库 {len(job['paper_ids'])} 篇")
         job["enrichment_stats"] = {"doi_attempted": len(enriched), "doi_resolved": enrichment_success, "http_requests": client.request_count, "successful_requests": client.success_count, "failed_requests": client.failure_count}
@@ -508,11 +518,9 @@ class Workbench:
         directory = Path(original.get("download_dir") or self.settings()["download_dir"])
         if not directory.is_absolute():
             directory = self.root / directory
-        job["options"] = {"ids": list(job["paper_ids"]), "directory": str(directory), "email": original.get("email"), "lookup": True}
-        try:
-            self.run_download(job)
-        finally:
-            job["options"] = original
+        download_options = {"ids": list(job["paper_ids"]), "directory": str(directory), "email": original.get("email"), "lookup": True}
+        self.progress(job, phase="download")
+        self.run_download(job, download_options=download_options)
 
     def retry_job(self, identifier):
         job = self.get_job(identifier)
@@ -573,8 +581,8 @@ class Workbench:
         self.set_download_dir(path)
         return self.new_job("download", {"ids": ids, "directory": str(path), "email": email or self.defaults.get("email"), "lookup": bool(lookup)})
 
-    def run_download(self, job):
-        options = job["options"]
+    def run_download(self, job, *, download_options=None):
+        options = download_options or job["options"]
         directory = Path(options["directory"])
         pdf_dir = directory / "pdfs"
         pdf_dir.mkdir(parents=True, exist_ok=True)

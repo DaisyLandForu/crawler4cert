@@ -72,7 +72,7 @@ class SearchTests(unittest.TestCase):
         client = FakeClient([{"message": {"items": [{"title": ["Unknown"]}, {"title": ["Old"], "published": {"date-parts": [[2020]]}}, {"title": ["New"], "published": {"date-parts": [[2026]]}}]}}])
         papers = search_crossref("security", 1, 2024, 2026, client, None)
         self.assertEqual([paper.title for paper in papers], ["New"])
-        self.assertIn("sort=published", client.urls[0])
+        self.assertIn("sort=relevance", client.urls[0])
 
     def test_crossref_uses_earliest_publication_not_created(self):
         self.assertEqual(extract_crossref_year({"published-print": {"date-parts": [[2025]]}, "published-online": {"date-parts": [[2024, 10]]}}), 2024)
